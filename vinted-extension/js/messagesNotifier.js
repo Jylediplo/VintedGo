@@ -1403,14 +1403,33 @@ function injectNotificationStyles() {
       position: sticky;
       top: 0;
       z-index: 10001;
-      background: rgba(255, 255, 255, 0.05) !important;
-      background-color: rgba(255, 255, 255, 0.05) !important;
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: transparent !important;
+      background-color: transparent !important;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: none;
       padding: 0.75rem 1rem;
       width: 100%;
       box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+    
+    .vinted-pinned-items-bar.scrolled {
+      background: #0f172a !important;
+      background-color: #0f172a !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 1.5rem;
+      margin-top: 60px; /* Espace pour la navbar de Vinted lors du scroll */
+    }
+    
+    /* S'assurer que le fond est bien appliqué même avec d'autres styles */
+    .vinted-pinned-items-bar.scrolled,
+    html .vinted-pinned-items-bar.scrolled,
+    body .vinted-pinned-items-bar.scrolled {
+      background: #0f172a !important;
+      background-color: #0f172a !important;
     }
     
     .vinted-pinned-items-container {
@@ -1429,49 +1448,30 @@ function injectNotificationStyles() {
     .vinted-pinned-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
-      min-width: 200px;
+      width: 60px;
+      height: 60px;
       flex-shrink: 0;
       position: relative;
     }
     
     .vinted-pinned-item:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: transparent;
       transform: translateY(-2px);
     }
     
     .vinted-pinned-item-photo {
-      width: 50px;
-      height: 50px;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      border-radius: 6px;
-    }
-    
-    .vinted-pinned-item-info {
-      flex: 1;
-      min-width: 0;
-    }
-    
-    .vinted-pinned-item-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: white;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .vinted-pinned-item-price {
-      font-size: 0.75rem;
-      color: #09B1BA;
-      font-weight: 600;
+      border-radius: 8px;
     }
     
     .vinted-pinned-item-unpin {

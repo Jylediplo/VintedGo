@@ -10,6 +10,7 @@ console.log('🔨 Building messages-notifier bundle...');
 // Lire les fichiers sources
 const messagesApi = fs.readFileSync(path.join(__dirname, 'js/messagesApi.js'), 'utf8');
 const messagesNotifier = fs.readFileSync(path.join(__dirname, 'js/messagesNotifier.js'), 'utf8');
+const utils = fs.readFileSync(path.join(__dirname, 'js/utils.js'), 'utf8');
 const itemDetails = fs.readFileSync(path.join(__dirname, 'js/itemDetails.js'), 'utf8');
 const messagesInit = fs.readFileSync(path.join(__dirname, 'messages-notifier-init.js'), 'utf8');
 
@@ -38,6 +39,14 @@ const bundle = `
   
   ${messagesNotifier
     .replace(/import \{[^}]+\} from ['"][^'"]+['"];?\n/g, '')
+    .replace(/export function/g, 'function')
+  }
+  
+  // ==========================================
+  // utils.js
+  // ==========================================
+  
+  ${utils
     .replace(/export function/g, 'function')
   }
   

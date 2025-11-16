@@ -2054,14 +2054,33 @@ function injectNotificationStyles() {
       position: sticky;
       top: 0;
       z-index: 10001;
-      background: rgba(255, 255, 255, 0.05) !important;
-      background-color: rgba(255, 255, 255, 0.05) !important;
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: transparent !important;
+      background-color: transparent !important;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: none;
       padding: 0.75rem 1rem;
       width: 100%;
       box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+    
+    .vinted-pinned-items-bar.scrolled {
+      background: #0f172a !important;
+      background-color: #0f172a !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 1.5rem;
+      margin-top: 60px; /* Espace pour la navbar de Vinted lors du scroll */
+    }
+    
+    /* S'assurer que le fond est bien appliqué même avec d'autres styles */
+    .vinted-pinned-items-bar.scrolled,
+    html .vinted-pinned-items-bar.scrolled,
+    body .vinted-pinned-items-bar.scrolled {
+      background: #0f172a !important;
+      background-color: #0f172a !important;
     }
     
     .vinted-pinned-items-container {
@@ -2080,49 +2099,30 @@ function injectNotificationStyles() {
     .vinted-pinned-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s;
-      min-width: 200px;
+      width: 60px;
+      height: 60px;
       flex-shrink: 0;
       position: relative;
     }
     
     .vinted-pinned-item:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: transparent;
       transform: translateY(-2px);
     }
     
     .vinted-pinned-item-photo {
-      width: 50px;
-      height: 50px;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      border-radius: 6px;
-    }
-    
-    .vinted-pinned-item-info {
-      flex: 1;
-      min-width: 0;
-    }
-    
-    .vinted-pinned-item-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: white;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .vinted-pinned-item-price {
-      font-size: 0.75rem;
-      color: #09B1BA;
-      font-weight: 600;
+      border-radius: 8px;
     }
     
     .vinted-pinned-item-unpin {
@@ -2911,12 +2911,47 @@ function renderItemDetails(modal, item) {
     </div>
   ` : '';
   
-  // Informations du produit
-  const price = item.price ? `${item.price} ${item.currency || 'EUR'}` : 'Prix non disponible';
-  const size = item.size || 'Taille non spécifiée';
-  const brand = item.brand || 'Marque non spécifiée';
-  const condition = item.condition || 'État non spécifié';
-  const description = item.description || 'Aucune description';
+  // Fonctions utilitaires pour extraire les données
+  function formatPrice(item) {
+    const amount = item.price?.amount || item.price?.value || item.price || 0;
+    const currency = item.price?.currency || item.price?.currency_code || item.currency || "EUR";
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: currency,
+    }).format(amount);
+  }
+  
+  function extractSize(item) {
+    const sizeLabel =
+      item.size_title ||
+      item.size?.localized_title ||
+      item.size?.title ||
+      item.size?.brand_size;
+    if (!sizeLabel) return null;
+    return sizeLabel
+      .replace(/^(taille|size)\s+/i, "")
+      .replace(/\b(taille unique|unique size)\b/i, "TU")
+      .split(/[\s,/|-]+/)[0]
+      ?.toUpperCase();
+  }
+  
+  function extractCondition(item) {
+    if (typeof item.condition === "string") return item.condition;
+    return (
+      item.condition?.translated_title ||
+      item.condition?.title ||
+      item.condition_title ||
+      item.status ||
+      null
+    );
+  }
+  
+  // Informations du produit - utiliser les fonctions d'extraction appropriées
+  const price = formatPrice(item) || 'Prix non disponible';
+  const size = extractSize(item) || 'Taille non spécifiée';
+  const brand = item.brand?.title || item.brand?.name || item.brand_title || (typeof item.brand === 'string' ? item.brand : 'Marque non spécifiée');
+  const condition = extractCondition(item) || 'État non spécifié';
+  const description = item.description || item.description_text || 'Aucune description';
   
   // Informations du vendeur
   const seller = item.user || {};
@@ -2953,7 +2988,6 @@ function renderItemDetails(modal, item) {
           <button class="vinted-item-message-btn" data-user-id="${seller.id || ''}" data-item-id="${item.id}">Contacter le vendeur</button>
         </div>
         <div class="vinted-item-conversation" id="vinted-item-conversation-${item.id}">
-          <div class="vinted-item-conversation-loading">Chargement de la conversation...</div>
         </div>
       </div>
     </div>
@@ -3123,12 +3157,14 @@ async function loadConversationForItem(itemId, userId, modal, item) {
       const conversationDetails = await fetchConversation(conversation.id);
       renderConversation(conversationContainer, conversationDetails, itemId, item);
     } else {
-      // Aucune conversation trouvée, afficher un message vide avec la barre d'envoi
-      renderEmptyConversation(conversationContainer, userId, itemId, item);
+      // Aucune conversation trouvée - ne rien afficher (pas de message de chargement)
+      // La conversation sera chargée uniquement si l'utilisateur clique sur "Contacter le vendeur"
+      conversationContainer.style.display = 'none';
     }
   } catch (error) {
     console.error("[Vinted Item] Erreur lors du chargement de la conversation:", error);
-    conversationContainer.innerHTML = '<div class="vinted-item-conversation-error">Erreur lors du chargement de la conversation.</div>';
+    // Ne pas afficher d'erreur non plus si aucune conversation n'existe
+    conversationContainer.style.display = 'none';
   }
 }
 
@@ -3142,6 +3178,9 @@ async function loadConversationForItem(itemId, userId, modal, item) {
 async function showConversationForItem(itemId, userId, modal, item) {
   const conversationContainer = modal.querySelector(`#vinted-item-conversation-${itemId}`);
   if (!conversationContainer) return;
+  
+  // Afficher le conteneur s'il était caché
+  conversationContainer.style.display = 'block';
   
   await loadConversationForItem(itemId, userId, modal, item);
 }
@@ -3465,10 +3504,6 @@ function renderPinnedItemsBar() {
       ${pinned.map(item => `
         <div class="vinted-pinned-item" data-item-id="${item.id}">
           <img src="${item.photo || ''}" alt="${escapeHtml(item.title)}" class="vinted-pinned-item-photo">
-          <div class="vinted-pinned-item-info">
-            <div class="vinted-pinned-item-title">${escapeHtml(item.title)}</div>
-            <div class="vinted-pinned-item-price">${escapeHtml(item.price)} ${escapeHtml(item.currency)}</div>
-          </div>
           <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Désépingler">×</button>
         </div>
       `).join('')}
@@ -3515,17 +3550,33 @@ if (document.readyState === 'loading') {
   renderPinnedItemsBar();
 }
 
-// Réafficher la barre après un scroll (pour s'assurer qu'elle reste visible)
+// Gérer le style de la barre lors du scroll (fond sombre et padding)
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  if (Math.abs(scrollTop - lastScrollTop) > 50) {
-    const bar = document.getElementById('vinted-pinned-items-bar');
-    if (bar) {
+  const bar = document.getElementById('vinted-pinned-items-bar');
+  
+  if (bar) {
+    // Ajouter la classe 'scrolled' si on a scrollé plus de 50px
+    if (scrollTop > 50) {
+      bar.classList.add('scrolled');
+      // Forcer le fond bleu marine avec style inline pour s'assurer qu'il s'applique
+      bar.style.background = '#0f172a';
+      bar.style.backgroundColor = '#0f172a';
+    } else {
+      bar.classList.remove('scrolled');
+      // Remettre transparent quand on revient en haut
+      bar.style.background = 'transparent';
+      bar.style.backgroundColor = 'transparent';
+    }
+    
+    // Réafficher la barre si nécessaire
+    if (Math.abs(scrollTop - lastScrollTop) > 50) {
       bar.style.display = 'block';
     }
-    lastScrollTop = scrollTop;
   }
+  
+  lastScrollTop = scrollTop;
 });
 
 

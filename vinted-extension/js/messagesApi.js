@@ -547,6 +547,182 @@ export async function sendOfferRequest(transactionId, price, currency = "EUR") {
  * @param {string} itemSlug - Nom/slug du produit (optionnel)
  * @returns {Promise<Object>} - Données du produit
  */
+/**
+ * Crée une conversation pour un item en envoyant un message
+ * @param {string|number} itemId - ID du produit
+ * @param {string|number} userId - ID du vendeur
+ * @param {string} messageBody - Corps du message
+ * @param {Object} item - Données du produit
+ * @returns {Promise<Object>} - Données de la conversation créée
+ */
+export async function createConversationForItem(itemId, userId, messageBody, item) {
+  // Utiliser l'API de contact de Vinted pour créer une conversation
+  const url = `https://www.vinted.fr/api/v2/items/${itemId}/contact`;
+  
+  let csrfToken = await getCsrfToken();
+  if (!csrfToken) {
+    csrfToken = await tryGetCsrfTokenFromPage();
+    if (csrfToken) {
+      cachedCsrfToken = csrfToken;
+    }
+  }
+  
+  if (!csrfToken) {
+    throw new Error("Impossible de récupérer le token CSRF. Veuillez recharger la page et réessayer.");
+  }
+  
+  const payload = {
+    message: {
+      body: messageBody,
+      recipient_id: userId
+    }
+  };
+  
+  const headers = {
+    "content-type": "application/json",
+    "x-csrf-token": csrfToken,
+  };
+  
+  const anonId = getAnonId();
+  if (anonId) {
+    headers["x-anon-id"] = anonId;
+  }
+  
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: headers,
+      body: JSON.stringify(payload),
+      mode: "cors",
+      cache: "no-cache",
+    });
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { message: await response.text() };
+      }
+      
+      if (response.status === 403 || (errorData.code === 106)) {
+        cachedCsrfToken = null;
+        const newToken = await tryGetCsrfTokenFromPage();
+        if (newToken) {
+          cachedCsrfToken = newToken;
+          headers["x-csrf-token"] = newToken;
+          const retryResponse = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: headers,
+            body: JSON.stringify(payload),
+          });
+          if (!retryResponse.ok) {
+            throw new Error(`HTTP ${retryResponse.status}: ${JSON.stringify(await retryResponse.json())}`);
+          }
+          return await retryResponse.json();
+        }
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return data.conversation || data;
+  } catch (error) {
+    console.error("[Vinted Messages] Erreur lors de la création de la conversation:", error);
+    throw error;
+  }
+}
+
+/**
+ * Crée une transaction pour un item afin de pouvoir faire une offre
+ * @param {string|number} itemId - ID du produit
+ * @param {number} price - Prix proposé
+ * @returns {Promise<Object>} - Données de la transaction créée
+ */
+export async function createTransactionForItem(itemId, price) {
+  // Utiliser l'API de transaction de Vinted
+  const url = `https://www.vinted.fr/api/v2/items/${itemId}/transactions`;
+  
+  let csrfToken = await getCsrfToken();
+  if (!csrfToken) {
+    csrfToken = await tryGetCsrfTokenFromPage();
+    if (csrfToken) {
+      cachedCsrfToken = csrfToken;
+    }
+  }
+  
+  if (!csrfToken) {
+    throw new Error("Impossible de récupérer le token CSRF. Veuillez recharger la page et réessayer.");
+  }
+  
+  const payload = {
+    transaction: {
+      price: price.toString(),
+      currency: "EUR"
+    }
+  };
+  
+  const headers = {
+    "content-type": "application/json",
+    "x-csrf-token": csrfToken,
+  };
+  
+  const anonId = getAnonId();
+  if (anonId) {
+    headers["x-anon-id"] = anonId;
+  }
+  
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: headers,
+      body: JSON.stringify(payload),
+      mode: "cors",
+      cache: "no-cache",
+    });
+    
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { message: await response.text() };
+      }
+      
+      if (response.status === 403 || (errorData.code === 106)) {
+        cachedCsrfToken = null;
+        const newToken = await tryGetCsrfTokenFromPage();
+        if (newToken) {
+          cachedCsrfToken = newToken;
+          headers["x-csrf-token"] = newToken;
+          const retryResponse = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: headers,
+            body: JSON.stringify(payload),
+          });
+          if (!retryResponse.ok) {
+            throw new Error(`HTTP ${retryResponse.status}: ${JSON.stringify(await retryResponse.json())}`);
+          }
+          return await retryResponse.json();
+        }
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return data.transaction || data;
+  } catch (error) {
+    console.error("[Vinted Messages] Erreur lors de la création de la transaction:", error);
+    throw error;
+  }
+}
+
 export async function fetchItemDetails(itemId, itemSlug = '') {
   // Construire l'URL de la page avec l'ID et le slug si disponible
   const url = itemSlug 

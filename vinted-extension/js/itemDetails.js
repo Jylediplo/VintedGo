@@ -1,5 +1,6 @@
 // Gestion de l'affichage des détails de produit dans une fenêtre transparente
-import { fetchItemDetails, sendOfferRequest, fetchConversation, sendMessage, fetchInbox } from './messagesApi.js';
+import { fetchItemDetails, sendOfferRequest, fetchConversation, sendMessage, fetchInbox, createConversationForItem, createTransactionForItem } from './messagesApi.js';
+import { extractSize, extractCondition, formatPrice } from './utils.js';
 
 /**
  * Extrait l'ID et le nom du produit depuis une URL Vinted
@@ -133,12 +134,12 @@ function renderItemDetails(modal, item) {
     </div>
   ` : '';
   
-  // Informations du produit
-  const price = item.price ? `${item.price} ${item.currency || 'EUR'}` : 'Prix non disponible';
-  const size = item.size || 'Taille non spécifiée';
-  const brand = item.brand || 'Marque non spécifiée';
-  const condition = item.condition || 'État non spécifié';
-  const description = item.description || 'Aucune description';
+  // Informations du produit - utiliser les fonctions d'extraction appropriées
+  const price = formatPrice(item) || 'Prix non disponible';
+  const size = extractSize(item) || 'Taille non spécifiée';
+  const brand = item.brand?.title || item.brand?.name || item.brand_title || (typeof item.brand === 'string' ? item.brand : 'Marque non spécifiée');
+  const condition = extractCondition(item) || 'État non spécifié';
+  const description = item.description || item.description_text || 'Aucune description';
   
   // Informations du vendeur
   const seller = item.user || {};
@@ -175,7 +176,6 @@ function renderItemDetails(modal, item) {
           <button class="vinted-item-message-btn" data-user-id="${seller.id || ''}" data-item-id="${item.id}">Contacter le vendeur</button>
         </div>
         <div class="vinted-item-conversation" id="vinted-item-conversation-${item.id}">
-          <div class="vinted-item-conversation-loading">Chargement de la conversation...</div>
         </div>
       </div>
     </div>
@@ -217,7 +217,12 @@ function renderItemDetails(modal, item) {
   const messageBtn = body.querySelector('.vinted-item-message-btn');
   if (messageBtn && seller.id) {
     messageBtn.addEventListener('click', async () => {
-      await showConversationForItem(item.id, seller.id, modal, item);
+      const conversationContainer = modal.querySelector(`#vinted-item-conversation-${item.id}`);
+      if (conversationContainer) {
+        conversationContainer.style.display = 'block';
+        // Afficher directement la barre de message
+        renderEmptyConversation(conversationContainer, seller.id, item.id, item);
+      }
     });
   }
   
@@ -293,11 +298,27 @@ function showOfferDialogForItem(itemId, modal) {
       return;
     }
     
-    // Pour l'instant, on ne peut pas faire d'offre directement sur un item
-    // Il faut d'abord créer une transaction/conversation
-    // On va afficher un message d'information
-    alert('Pour faire une offre, veuillez d\'abord contacter le vendeur.');
-    closeOfferModal();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi...';
+    
+    try {
+      // Créer une transaction pour cet item si elle n'existe pas
+      const transaction = await createTransactionForItem(itemId, parseFloat(price));
+      
+      if (transaction && transaction.id) {
+        // Envoyer l'offre
+        await sendOfferRequest(transaction.id, price, 'EUR');
+        alert('Offre envoyée avec succès !');
+        closeOfferModal();
+      } else {
+        throw new Error('Impossible de créer la transaction');
+      }
+    } catch (error) {
+      console.error("[Vinted Item] Erreur lors de l'envoi de l'offre:", error);
+      alert("Erreur lors de l'envoi de l'offre. Veuillez réessayer.");
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer l\'offre';
+    }
   };
   
   submitBtn.addEventListener('click', handleSubmit);
@@ -345,12 +366,14 @@ async function loadConversationForItem(itemId, userId, modal, item) {
       const conversationDetails = await fetchConversation(conversation.id);
       renderConversation(conversationContainer, conversationDetails, itemId, item);
     } else {
-      // Aucune conversation trouvée, afficher un message vide avec la barre d'envoi
-      renderEmptyConversation(conversationContainer, userId, itemId, item);
+      // Aucune conversation trouvée - ne rien afficher (pas de message de chargement)
+      // La conversation sera chargée uniquement si l'utilisateur clique sur "Contacter le vendeur"
+      conversationContainer.style.display = 'none';
     }
   } catch (error) {
     console.error("[Vinted Item] Erreur lors du chargement de la conversation:", error);
-    conversationContainer.innerHTML = '<div class="vinted-item-conversation-error">Erreur lors du chargement de la conversation.</div>';
+    // Ne pas afficher d'erreur non plus si aucune conversation n'existe
+    conversationContainer.style.display = 'none';
   }
 }
 
@@ -364,6 +387,9 @@ async function loadConversationForItem(itemId, userId, modal, item) {
 async function showConversationForItem(itemId, userId, modal, item) {
   const conversationContainer = modal.querySelector(`#vinted-item-conversation-${itemId}`);
   if (!conversationContainer) return;
+  
+  // Afficher le conteneur s'il était caché
+  conversationContainer.style.display = 'block';
   
   await loadConversationForItem(itemId, userId, modal, item);
 }
@@ -521,13 +547,46 @@ function renderEmptyConversation(container, userId, itemId, item) {
     </div>
   `;
   
-  // Pour l'instant, on ne peut pas créer de conversation directement
-  // L'utilisateur devra utiliser le bouton "Contacter le vendeur" sur la page Vinted
   const input = container.querySelector('.vinted-item-messages-input');
   const sendBtn = container.querySelector('.vinted-item-messages-send');
   
-  sendBtn.addEventListener('click', () => {
-    alert('Pour envoyer un message, veuillez d\'abord contacter le vendeur depuis la page du produit.');
+  const handleSend = async () => {
+    const messageText = input.value.trim();
+    if (!messageText) return;
+    
+    input.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.style.opacity = '0.5';
+    
+    try {
+      // Créer une conversation en envoyant un message via l'API Vinted
+      // On va utiliser l'URL de contact direct de Vinted
+      const conversation = await createConversationForItem(itemId, userId, messageText, item);
+      
+      if (conversation && conversation.id) {
+        // Recharger la conversation pour afficher le message
+        const updatedConversation = await fetchConversation(conversation.id);
+        renderConversation(container, updatedConversation, itemId, item);
+      } else {
+        throw new Error('Impossible de créer la conversation');
+      }
+    } catch (error) {
+      console.error("[Vinted Item] Erreur lors de l'envoi:", error);
+      alert("Erreur lors de l'envoi du message. Veuillez réessayer.");
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.style.opacity = '1';
+      input.focus();
+    }
+  };
+  
+  sendBtn.addEventListener('click', handleSend);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   });
 }
 
@@ -687,10 +746,6 @@ function renderPinnedItemsBar() {
       ${pinned.map(item => `
         <div class="vinted-pinned-item" data-item-id="${item.id}">
           <img src="${item.photo || ''}" alt="${escapeHtml(item.title)}" class="vinted-pinned-item-photo">
-          <div class="vinted-pinned-item-info">
-            <div class="vinted-pinned-item-title">${escapeHtml(item.title)}</div>
-            <div class="vinted-pinned-item-price">${escapeHtml(item.price)} ${escapeHtml(item.currency)}</div>
-          </div>
           <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Désépingler">×</button>
         </div>
       `).join('')}
@@ -737,16 +792,32 @@ if (document.readyState === 'loading') {
   renderPinnedItemsBar();
 }
 
-// Réafficher la barre après un scroll (pour s'assurer qu'elle reste visible)
+// Gérer le style de la barre lors du scroll (fond sombre et padding)
 let lastScrollTop = 0;
 window.addEventListener('scroll', () => {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  if (Math.abs(scrollTop - lastScrollTop) > 50) {
-    const bar = document.getElementById('vinted-pinned-items-bar');
-    if (bar) {
+  const bar = document.getElementById('vinted-pinned-items-bar');
+  
+  if (bar) {
+    // Ajouter la classe 'scrolled' si on a scrollé plus de 50px
+    if (scrollTop > 50) {
+      bar.classList.add('scrolled');
+      // Forcer le fond bleu marine avec style inline pour s'assurer qu'il s'applique
+      bar.style.background = '#0f172a';
+      bar.style.backgroundColor = '#0f172a';
+    } else {
+      bar.classList.remove('scrolled');
+      // Remettre transparent quand on revient en haut
+      bar.style.background = 'transparent';
+      bar.style.backgroundColor = 'transparent';
+    }
+    
+    // Réafficher la barre si nécessaire
+    if (Math.abs(scrollTop - lastScrollTop) > 50) {
       bar.style.display = 'block';
     }
-    lastScrollTop = scrollTop;
   }
+  
+  lastScrollTop = scrollTop;
 });
 

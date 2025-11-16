@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Monitor en temps réel des nouveaux articles Vinted",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://www.vinted.fr/*"
@@ -36,6 +37,14 @@
     "16": "icon.svg",
     "48": "icon.svg",
     "128": "icon.svg"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.svg",
+      "48": "icon.svg",
+      "128": "icon.svg"
+    }
   }
 }
 
