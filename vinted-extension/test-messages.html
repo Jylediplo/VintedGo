@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Notifications Messages Vinted</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    button {
+      background: #09B1BA;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background: #078a91;
+    }
+    
+    button.stop {
+      background: #e74c3c;
+    }
+    
+    button.stop:hover {
+      background: #c0392b;
+    }
+    
+    .info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+    }
+    
+    .status {
+      margin: 10px 0;
+      padding: 10px;
+      background: #ecf0f1;
+      border-radius: 4px;
+    }
+    
+    .log {
+      margin-top: 20px;
+      padding: 15px;
+      background: #2c3e50;
+      color: #ecf0f1;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #3498db;
+      padding-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔔 Test Notifications Messages Vinted</h1>
+  
+  <div class="controls">
+    <h2>Contrôles</h2>
+    <button onclick="startNotifications()">▶️ Démarrer les notifications</button>
+    <button onclick="stopNotifications()" class="stop">⏹️ Arrêter les notifications</button>
+    <button onclick="testNotification()">🧪 Tester une notification</button>
+    <button onclick="clearLogs()">🗑️ Effacer les logs</button>
+  </div>
+  
+  <div class="info">
+    <h2>Statut</h2>
+    <div class="status">
+      <strong>État:</strong> <span id="status">Non démarré</span><br>
+      <strong>Intervalle:</strong> 10 secondes<br>
+      <strong>Conversations connues:</strong> <span id="known-count">0</span><br>
+      <strong>Notifications actives:</strong> <span id="active-count">0</span>
+    </div>
+    
+    <h3>📋 Logs</h3>
+    <div class="log" id="log-container">
+      <div class="log-entry">En attente de démarrage...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { startMessageNotifications, stopMessageNotifications, resetNotificationState } from './js/messagesNotifier.js';
+    import { fetchInbox } from './js/messagesApi.js';
+    
+    let isRunning = false;
+    
+    // Logger custom
+    const originalLog = console.log;
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addLog(args.join(' '));
+    };
+    
+    function addLog(message) {
+      const logContainer = document.getElementById('log-container');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+    
+    window.startNotifications = function() {
+      if (isRunning) {
+        addLog('⚠️ Notifications déjà en cours');
+        return;
+      }
+      
+      addLog('▶️ Démarrage des notifications...');
+      startMessageNotifications(10000);
+      isRunning = true;
+      document.getElementById('status').textContent = '✅ En cours';
+      document.getElementById('status').style.color = 'green';
+    };
+    
+    window.stopNotifications = function() {
+      if (!isRunning) {
+        addLog('⚠️ Notifications déjà arrêtées');
+        return;
+      }
+      
+      addLog('⏹️ Arrêt des notifications...');
+      stopMessageNotifications();
+      isRunning = false;
+      document.getElementById('status').textContent = '🔴 Arrêté';
+      document.getElementById('status').style.color = 'red';
+    };
+    
+    window.testNotification = async function() {
+      addLog('🧪 Test d\'une notification factice...');
+      
+      try {
+        const data = await fetchInbox();
+        if (data.conversations && data.conversations.length > 0) {
+          const conv = data.conversations[0];
+          addLog(`✅ Conversation de test trouvée: ${conv.opposite_user.login}`);
+          
+          // Créer une notification de test
+          const testConv = {
+            id: 'test-' + Date.now(),
+            description: conv.description || 'Test message',
+            unread: true,
+            opposite_user: {
+              login: conv.opposite_user.login,
+              photo_url: conv.opposite_user.photo?.thumbnails?.find(t => t.type === "thumb100")?.url
+            },
+            item_photo: conv.item_photos?.[0]?.thumbnails?.find(t => t.type === "thumb70x100")?.url,
+            conversation_url: 'https://www.vinted.fr/inbox'
+          };
+          
+          // Pour tester, on pourrait utiliser la fonction showNotification si elle était exportée
+          addLog('ℹ️ Pour voir une vraie notification, démarrez le système et attendez un nouveau message');
+        } else {
+          addLog('❌ Aucune conversation trouvée pour le test');
+        }
+      } catch (error) {
+        addLog('❌ Erreur lors du test: ' + error.message);
+      }
+    };
+    
+    window.clearLogs = function() {
+      document.getElementById('log-container').innerHTML = '<div class="log-entry">Logs effacés</div>';
+    };
+    
+    // Mise à jour du statut toutes les 2 secondes
+    setInterval(() => {
+      // Ces valeurs ne sont pas exportées, donc on ne peut pas les afficher réellement
+      // C'est juste un placeholder
+      if (isRunning) {
+        document.getElementById('known-count').textContent = '?';
+        document.getElementById('active-count').textContent = '?';
+      }
+    }, 2000);
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications Vinted - Compact</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      padding-bottom: 200px;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      font-size: 1.2em;
+      opacity: 0.9;
+    }
+
+    .controls {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 40px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .controls h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #09B1BA 0%, #078a91 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(9, 177, 186, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(250, 112, 154, 0.4);
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .info-box h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .info-box p {
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .code {
+      background: #2d3748;
+      color: #a0aec0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    /* Styles des notifications */
+    .vinted-notif-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      background: transparent !important;
+      background-color: transparent !important;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+      z-index: 10000;
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      animation: slideUp 0.4s ease;
+      border-top: none;
+    }
+    
+    /* Forcer la transparence du conteneur même en mode sombre */
+    .vinted-dark-mode .vinted-notif-container,
+    html.vinted-dark-mode .vinted-notif-container,
+    body.vinted-dark-mode .vinted-notif-container {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+    
+    .vinted-notif-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    .vinted-notif-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .vinted-notif-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+    
+    .vinted-notif-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .vinted-message-notification {
+      flex-shrink: 0;
+      width: 200px;
+      background: rgba(255, 255, 255, 0.25) !important;
+      background-color: rgba(255, 255, 255, 0.25) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: popIn 0.3s ease;
+    }
+    
+    /* Forcer la transparence même en mode sombre */
+    .vinted-dark-mode .vinted-message-notification,
+    html.vinted-dark-mode .vinted-message-notification,
+    body.vinted-dark-mode .vinted-message-notification {
+      background: rgba(255, 255, 255, 0.85) !important;
+      background-color: rgba(255, 255, 255, 0.85) !important;
+    }
+    
+    @keyframes popIn {
+      from {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    .vinted-message-notification:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    
+    .vinted-notif-close {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.1);
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      font-weight: bold;
+      z-index: 10;
+    }
+    
+    .vinted-notif-close:hover {
+      background: rgba(0, 0, 0, 0.2);
+      color: #333;
+      transform: scale(1.1);
+    }
+    
+    .vinted-notif-avatar-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    
+    .vinted-notif-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #09B1BA;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .vinted-notif-content {
+      text-align: center;
+    }
+    
+    .vinted-notif-badge {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    
+    .vinted-notif-username {
+      font-weight: 700;
+      font-size: 13px;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .vinted-notif-description {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .vinted-notif-item-photo {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid #f0f0f0;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔔 Notifications Vinted - Compact</h1>
+    <p class="subtitle">Petites cartes en bas de page, plusieurs sur la largeur</p>
+  </div>
+
+  <div class="controls">
+    <h2>Contrôles de démonstration</h2>
+    
+    <div class="button-group">
+      <button class="btn-primary" onclick="showSingleNotif()">
+        📬 Afficher 1 carte
+      </button>
+      <button class="btn-secondary" onclick="showMultipleNotifs()">
+        📬📬 Afficher 5 cartes
+      </button>
+      <button class="btn-danger" onclick="clearAllNotifs()">
+        🗑️ Tout effacer
+      </button>
+    </div>
+
+    <div class="info-box">
+      <h3>💡 Comment ça marche ?</h3>
+      <p>
+        Les notifications apparaissent en bas de page sous forme de <strong>petites cartes compactes (200px)</strong>.
+        Plusieurs cartes s'affichent côte à côte sur la largeur. Défilement horizontal automatique si trop de cartes.
+      </p>
+      
+      <div class="code">
+        ✨ Design: Cartes compactes 200px<br>
+        📐 Layout: Flex horizontal avec scroll<br>
+        🎯 Empilage: Côte à côte sur la largeur
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let notifCount = 0;
+
+    const sampleUsers = [
+      {
+        name: "MarieStyle",
+        price: "15,00 €",
+        avatar: "https://ui-avatars.com/api/?name=Marie+Style&background=09B1BA&color=fff&size=50",
+        item: "https://via.placeholder.com/200x100/09B1BA/ffffff?text=Pull"
+      },
+      {
+        name: "JeanMode",
+        price: "25,00 €",
+        avatar: "https://ui-avatars.com/api/?name=Jean+Mode&background=FA709A&color=fff&size=50",
+        item: "https://via.placeholder.com/200x100/FA709A/ffffff?text=Veste"
+      },
+      {
+        name: "SophieChic",
+        price: "30,00 €",
+        avatar: "https://ui-avatars.com/api/?name=Sophie+Chic&background=667EEA&color=fff&size=50",
+        item: "https://via.placeholder.com/200x100/667EEA/ffffff?text=Robe"
+      },
+      {
+        name: "PaulVintage",
+        price: "20,00 €",
+        avatar: "https://ui-avatars.com/api/?name=Paul+Vintage&background=FFA500&color=fff&size=50",
+        item: "https://via.placeholder.com/200x100/FFA500/ffffff?text=Jean"
+      },
+      {
+        name: "LucieStyle",
+        price: "18,00 €",
+        avatar: "https://ui-avatars.com/api/?name=Lucie+Style&background=9B59B6&color=fff&size=50",
+        item: "https://via.placeholder.com/200x100/9B59B6/ffffff?text=Sac"
+      }
+    ];
+
+    function getOrCreateContainer() {
+      let container = document.getElementById('vinted-notif-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'vinted-notif-container';
+        container.className = 'vinted-notif-container';
+        document.body.appendChild(container);
+      }
+      return container;
+    }
+
+    function createNotification(user) {
+      const container = getOrCreateContainer();
+      const notif = document.createElement('div');
+      notif.className = 'vinted-message-notification';
+      notif.id = `notif-${notifCount++}`;
+      
+      notif.innerHTML = `
+        <button class="vinted-notif-close" aria-label="Fermer" onclick="removeNotif('${notif.id}')">×</button>
+        <div class="vinted-notif-avatar-wrapper">
+          <img src="${user.avatar}" 
+               alt="${user.name}"
+               class="vinted-notif-avatar">
+        </div>
+        <div class="vinted-notif-content">
+          <div class="vinted-notif-badge">💬</div>
+          <div class="vinted-notif-username">${user.name}</div>
+          <div class="vinted-notif-description">${user.price}</div>
+          <img src="${user.item}" alt="Article" class="vinted-notif-item-photo">
+        </div>
+      `;
+      
+      notif.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('vinted-notif-close')) {
+          alert(`Ouverture de la conversation avec ${user.name} 💬`);
+        }
+      });
+      
+      container.appendChild(notif);
+      
+      return notif;
+    }
+
+    function showSingleNotif() {
+      const user = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
+      createNotification(user);
+    }
+
+    function showMultipleNotifs() {
+      sampleUsers.forEach((user, index) => {
+        setTimeout(() => createNotification(user), index * 200);
+      });
+    }
+
+    function removeNotif(notifId) {
+      const notif = document.getElementById(notifId);
+      if (notif) {
+        notif.style.animation = 'popIn 0.3s ease reverse';
+        setTimeout(() => {
+          notif.remove();
+          
+          // Supprimer le conteneur s'il est vide
+          const container = document.getElementById('vinted-notif-container');
+          if (container && container.children.length === 0) {
+            container.remove();
+          }
+        }, 300);
+      }
+    }
+
+    function clearAllNotifs() {
+      const container = document.getElementById('vinted-notif-container');
+      if (container) {
+        const notifs = container.querySelectorAll('.vinted-message-notification');
+        notifs.forEach((notif, index) => {
+          setTimeout(() => {
+            notif.style.animation = 'popIn 0.3s ease reverse';
+            setTimeout(() => notif.remove(), 300);
+          }, index * 100);
+        });
+        
+        setTimeout(() => {
+          if (container.children.length === 0) {
+            container.remove();
+          }
+        }, notifs.length * 100 + 300);
+      }
+    }
+
+    // Afficher une notification au chargement pour la démo
+    setTimeout(showSingleNotif, 500);
+  </script>
+</body>
+</html>

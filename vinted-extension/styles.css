@@ -1,0 +1,1677 @@
+/* ==================== DARK MODE ==================== */
+
+/* Mode sombre pour tout le site Vinted */
+html.vinted-dark-mode,
+html.vinted-dark-mode body,
+.vinted-dark-mode,
+.vinted-dark-mode body,
+.vinted-dark-mode main,
+.vinted-dark-mode #app,
+.vinted-dark-mode .main-content,
+.vinted-dark-mode [class*="Layout"],
+.vinted-dark-mode [class*="Page"],
+.vinted-dark-mode [class*="Container"] {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Header et navigation */
+.vinted-dark-mode header,
+.vinted-dark-mode .l-header,
+.vinted-dark-mode nav,
+.vinted-dark-mode .navbar {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.vinted-dark-mode .u-ui-border-bottom {
+  border-color: #334155 !important;
+}
+
+/* Footer */
+.vinted-dark-mode footer,
+.vinted-dark-mode .main-footer,
+.vinted-dark-mode .main-footer__content {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #1e293b !important;
+}
+
+.vinted-dark-mode .main-footer__content a,
+.vinted-dark-mode .main-footer__content p,
+.vinted-dark-mode .main-footer__content span,
+.vinted-dark-mode .main-footer__content div {
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .main-footer__content a:hover {
+  color: #60a5fa !important;
+}
+
+/* Sidebar */
+.vinted-dark-mode #sidebar,
+.vinted-dark-mode .sidebar-container {
+  background: #0f172a !important;
+}
+
+/* Labels de la sidebar (ex: "Tes recherches") */
+.vinted-dark-mode .web_ui__Label__label,
+.vinted-dark-mode .web_ui__Label__content {
+  color: #f1f5f9 !important;
+  background: transparent !important;
+}
+
+.vinted-dark-mode .filter-manager,
+.vinted-dark-mode .alert-system {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+.vinted-dark-mode .filter-item,
+.vinted-dark-mode .alert-item {
+  background: #1e293b !important;
+}
+
+/* Border pour filter-item uniquement (alert-item a des bordures colorées personnalisées) */
+.vinted-dark-mode .filter-item {
+  border-color: #334155 !important;
+}
+
+.vinted-dark-mode .filter-item:not(.filter-item-active):hover {
+  background: #334155 !important;
+}
+
+.vinted-dark-mode .filter-item-active {
+  background: #1e3a5f !important;
+  border-color: #3b82f6 !important;
+}
+
+.vinted-dark-mode .filter-item-name,
+.vinted-dark-mode .alert-item-name,
+.vinted-dark-mode .filter-manager-title,
+.vinted-dark-mode .alert-system-title,
+.vinted-dark-mode .pickup-system-title {
+  color: #f1f5f9 !important;
+}
+
+.vinted-dark-mode .filter-manager-title:hover,
+.vinted-dark-mode .alert-system-title:hover,
+.vinted-dark-mode .pickup-system-title:hover {
+  color: #60a5fa !important;
+}
+
+.vinted-dark-mode .filter-item-search {
+  color: #60a5fa !important;
+}
+
+.vinted-dark-mode .filter-item-count,
+.vinted-dark-mode .alert-item-info {
+  color: #94a3b8 !important;
+}
+
+/* Monitor container */
+.vinted-dark-mode #vinted-monitor-container {
+  background: #0f172a !important;
+}
+
+/* Item cards */
+.vinted-dark-mode .item-card {
+  background: #1e293b !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.vinted-dark-mode .item-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.vinted-dark-mode .item-title {
+  color: #f1f5f9 !important;
+}
+
+.vinted-dark-mode .item-price {
+  color: #10b981 !important;
+}
+
+.vinted-dark-mode .badge {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Boutons */
+.vinted-dark-mode .btn-save-filter,
+.vinted-dark-mode .btn-create-alert {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.vinted-dark-mode button:not(.color-picker-option),
+.vinted-dark-mode .btn:not(.color-picker-option),
+.vinted-dark-mode [class*="Button"]:not(.color-picker-option),
+.vinted-dark-mode [class*="button"]:not(.color-picker-option) {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+
+.vinted-dark-mode button:not(.color-picker-option):hover,
+.vinted-dark-mode .btn:not(.color-picker-option):hover {
+  background: #475569 !important;
+}
+
+/* Bouton buy toggle en mode clair */
+#buy-button-toggle {
+  background: #e5e7eb !important;
+  color: #374151 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+#buy-button-toggle:hover {
+  background: #d1d5db !important;
+  border-color: #9ca3af !important;
+}
+
+/* Bouton buy toggle en mode sombre */
+.vinted-dark-mode #buy-button-toggle {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1e293b !important;
+}
+
+.vinted-dark-mode #buy-button-toggle:hover {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Bouton dark mode en mode clair - plus clair */
+#dark-mode-toggle {
+  background: #e5e7eb !important;
+  color: #374151 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+#dark-mode-toggle:hover {
+  background: #d1d5db !important;
+  border-color: #9ca3af !important;
+}
+
+/* Bouton dark mode inversé en mode sombre */
+.vinted-dark-mode #dark-mode-toggle {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1e293b !important;
+}
+
+.vinted-dark-mode #dark-mode-toggle:hover {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Bouton Monitor en mode sombre */
+.vinted-dark-mode #toggle-monitor {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1e293b !important;
+}
+
+.vinted-dark-mode #toggle-monitor:hover {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Boutons de l'extension en mode sombre */
+.vinted-dark-mode .btn-save-filter,
+.vinted-dark-mode .btn-create-alert {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1e293b !important;
+}
+
+.vinted-dark-mode .btn-save-filter:hover,
+.vinted-dark-mode .btn-create-alert:hover {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Enlever les pseudo-éléments des boutons en mode sombre */
+.vinted-dark-mode .btn-save-filter::before,
+.vinted-dark-mode .btn-create-alert::before,
+.vinted-dark-mode #buy-button-toggle::before,
+.vinted-dark-mode #dark-mode-toggle::before,
+.vinted-dark-mode #toggle-monitor::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Préserver les couleurs de la palette et des alertes */
+.vinted-dark-mode .color-picker-option {
+  /* Les couleurs inline doivent être préservées */
+  border-color: transparent !important;
+}
+
+.vinted-dark-mode .color-picker-option.selected {
+  border-color: #1e293b !important;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #1e293b !important;
+}
+
+/* Les couleurs inline doivent être préservées pour la preview des alertes */
+/* Les bordures colorées inline des alert-item doivent être préservées */
+/* Pas de border-color ou background override pour ces éléments en mode sombre */
+
+.vinted-dark-mode .color-picker-modal {
+  z-index: 10001 !important;
+}
+
+.vinted-dark-mode .color-picker-content {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.vinted-dark-mode .color-picker-title {
+  color: #f1f5f9 !important;
+}
+
+.vinted-dark-mode .btn-color-cancel {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .btn-color-cancel:hover {
+  background: #475569 !important;
+}
+
+.vinted-dark-mode .btn-delete-alert,
+.vinted-dark-mode .btn-delete-filter {
+  background: transparent !important;
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .btn-delete-alert:hover,
+.vinted-dark-mode .btn-delete-filter:hover {
+  background: #dc2626 !important;
+  color: #fecaca !important;
+}
+
+/* Inputs et selects de Vinted */
+.vinted-dark-mode input,
+.vinted-dark-mode select,
+.vinted-dark-mode textarea,
+.vinted-dark-mode .web_ui__InputBar__input-bar,
+.vinted-dark-mode .web_ui__InputBar__value,
+.vinted-dark-mode .web_ui__InputBar__input {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode input::placeholder,
+.vinted-dark-mode .web_ui__InputBar__value::placeholder {
+  color: #64748b !important;
+}
+
+/* Textes généraux du site Vinted */
+.vinted-dark-mode h1,
+.vinted-dark-mode h2,
+.vinted-dark-mode h3,
+.vinted-dark-mode h4,
+.vinted-dark-mode h5,
+.vinted-dark-mode h6,
+.vinted-dark-mode p,
+.vinted-dark-mode span,
+.vinted-dark-mode a,
+.vinted-dark-mode div {
+  color: #e2e8f0 !important;
+}
+
+/* Links */
+.vinted-dark-mode a:hover {
+  color: #60a5fa !important;
+}
+
+/* Messages vides */
+.vinted-dark-mode .filter-empty,
+.vinted-dark-mode .alert-empty {
+  color: #64748b !important;
+}
+
+/* Toggle switch pour alertes */
+.vinted-dark-mode .alert-toggle-slider {
+  background-color: #475569 !important;
+}
+
+/* Forcer tous les éléments avec fond blanc à être sombres (sauf les éléments avec couleurs personnalisées) */
+.vinted-dark-mode *[style*="background-color: white"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator),
+.vinted-dark-mode *[style*="background-color: rgb(255, 255, 255)"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator),
+.vinted-dark-mode *[style*="background: white"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator),
+.vinted-dark-mode *[style*="background: rgb(255, 255, 255)"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator),
+.vinted-dark-mode *[style*="background:#ffffff"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator),
+.vinted-dark-mode *[style*="background:#fff"]:not(.color-picker-option):not(.alert-color-preview):not(.alert-item):not(.alert-indicator) {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+}
+
+/* Grille et sections principales */
+.vinted-dark-mode .catalog-items,
+.vinted-dark-mode [class*="catalog"],
+.vinted-dark-mode [class*="grid"],
+.vinted-dark-mode [class*="wrapper"],
+.vinted-dark-mode section {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+}
+
+/* Barre de recherche et composants */
+.vinted-dark-mode .l-search,
+.vinted-dark-mode .web_ui__Cell__cell,
+.vinted-dark-mode .web_ui__Cell__content,
+.vinted-dark-mode .web_ui__Cell__body,
+.vinted-dark-mode .container,
+.vinted-dark-mode .web_ui__InputBar__prefix,
+.vinted-dark-mode .web_ui__InputBar__suffix {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+}
+
+/* Dividers */
+.vinted-dark-mode .web_ui__Divider__divider {
+  background: #334155 !important;
+  border-color: #334155 !important;
+}
+
+/* Icônes */
+.vinted-dark-mode .web_ui__Icon__icon,
+.vinted-dark-mode svg {
+  color: #94a3b8 !important;
+  fill: #94a3b8 !important;
+}
+
+.vinted-dark-mode .web_ui__Icon__greyscale-level-1,
+.vinted-dark-mode .web_ui__Icon__greyscale-level-2 {
+  color: #94a3b8 !important;
+}
+
+/* Textes Web UI */
+.vinted-dark-mode .web_ui__Text__text,
+.vinted-dark-mode .web_ui__Text__subtitle,
+.vinted-dark-mode .web_ui__Button__label {
+  color: #e2e8f0 !important;
+}
+
+/* Boutons Web UI */
+.vinted-dark-mode .web_ui__Button__button {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .web_ui__Button__outlined {
+  background: transparent !important;
+  border-color: #475569 !important;
+}
+
+.vinted-dark-mode .web_ui__Button__flat {
+  background: transparent !important;
+}
+
+/* Cards et panels */
+.vinted-dark-mode [class*="Card"],
+.vinted-dark-mode [class*="Panel"],
+.vinted-dark-mode [class*="Modal"] {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+/* ==================== FIN DARK MODE ==================== */
+
+/* Cacher la navigation des catégories Vinted */
+ul.nav.nav-detailed.nav-page-categories[data-testid="sub-catalog-navigation-links"] {
+  display: none !important;
+}
+
+/* Cacher la navigation du header */
+.l-header__navigation {
+  display: none !important;
+}
+
+/* Cacher les publicités */
+.slot-container,
+[data-testid="slot-container"],
+.slot-placeholder,
+[data-testid="slot-placeholder"],
+.slot-content,
+[id*="slot-"] {
+  display: none !important;
+}
+
+/* Cacher le conteneur des notifications, messages, favoris et menu utilisateur */
+.u-flexbox.u-margin-left-auto.u-align-items-center.u-position-relative.u-z-index-notification {
+  display: none !important;
+}
+
+/* Cacher le bouton menu hamburger */
+button[aria-label="Menu ouvert"],
+button[aria-label="Menu fermé"] {
+  display: none !important;
+}
+
+/* Cacher le bouton "Articles" dans la barre de recherche */
+.web_ui__InputBar__prefix,
+[data-testid="search-bar-search-type"] {
+  display: none !important;
+}
+
+/* Cacher le bouton de recherche par image */
+button[data-testid="search-by-image-button"],
+button[title="Recherche à partir d'une image"] {
+  display: none !important;
+}
+
+/* Cacher la section "500+ resultats / Résultats de recherche" */
+.u-ui-padding-vertical-medium.u-flexbox.u-justify-content-between.u-align-items-center {
+  display: none !important;
+}
+
+/* Cacher la section "Articles" et "Supprimer la recherche" */
+.u-flexbox > .u-margin-right-auto,
+.u-flexbox > .u-tablets-up-only {
+  display: none !important;
+}
+
+/* Cacher tout le conteneur flex avec le titre Articles */
+.u-flexbox:has(h1.web_ui__Text__heading) {
+  display: none !important;
+}
+
+/* Cacher tout le contenu original de Vinted (grille d'articles, pagination, etc.) */
+#catalog-items-container,
+.item-box,
+.feed-grid,
+.new-item-box,
+[data-testid="catalog-items-container"],
+[data-testid="catalog-pagination"],
+.catalog__content,
+main#catalog,
+.main-content {
+  display: none !important;
+}
+
+/* ==================== FILTER MANAGER ==================== */
+
+/* Container sticky pour filtres + alertes */
+.sidebar-sticky-container {
+  position: sticky;
+  top: 60px;
+  z-index: 100;
+  background: transparent;
+}
+
+.filter-manager {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.filter-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filter-manager-title,
+.alert-system-title,
+.pickup-system-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.filter-manager-title:hover,
+.alert-system-title:hover,
+.pickup-system-title:hover {
+  color: #3b82f6;
+  transform: translateX(2px);
+}
+
+.filter-manager-title::before {
+  content: "⚡";
+  font-size: 1.25rem;
+  transition: transform 0.3s;
+}
+
+.filter-manager.collapsed .filter-manager-title::before {
+  transform: rotate(-90deg);
+}
+
+.btn-save-filter {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btn-save-filter::before {
+  content: "＋";
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.btn-save-filter:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.filter-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9375rem;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+
+.filter-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.filter-item:not(.filter-item-active):hover {
+  background: #1e293b;
+  border-color: #334155;
+  transform: translateX(2px);
+  color: #f1f5f9;
+}
+
+.filter-item:not(.filter-item-active):hover .filter-item-name,
+.filter-item:not(.filter-item-active):hover .filter-item-count,
+.filter-item:not(.filter-item-active):hover .filter-item-search {
+  color: #f1f5f9 !important;
+}
+
+.filter-item-active {
+  background: #eff6ff !important;
+  border: 1.5px solid #3b82f6 !important;
+  cursor: default !important;
+}
+
+.filter-item-active:hover {
+  background: #eff6ff !important;
+  transform: none !important;
+}
+
+.filter-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.filter-item-name {
+  font-weight: 500;
+  color: #0f172a;
+  font-size: 0.9375rem;
+}
+
+.filter-item-search {
+  font-size: 0.8125rem;
+  color: #3b82f6;
+  font-style: italic;
+  margin-top: 0.125rem;
+}
+
+.filter-item-count {
+  font-size: 0.8125rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.125rem;
+}
+
+.filter-item-count::before {
+  content: "•";
+  color: #cbd5e1;
+}
+
+.filter-active-badge {
+  font-size: 0.8125rem;
+  color: #3b82f6;
+  font-weight: 500;
+  margin-top: 0.125rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.filter-active-badge::before {
+  content: "✓";
+  font-weight: 600;
+}
+
+.btn-delete-filter {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #94a3b8;
+  flex-shrink: 0;
+  font-size: 1.125rem;
+}
+
+.btn-delete-filter:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  transform: scale(1.05);
+}
+
+/* ==================== FIN FILTER MANAGER ==================== */
+
+/* ==================== ALERT SYSTEM ==================== */
+
+.alert-system {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.alert-system-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.alert-system-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-system-title::before {
+  content: "🔔";
+  font-size: 1.375rem;
+  transition: transform 0.3s;
+}
+
+.alert-system.collapsed .alert-system-title::before {
+  transform: rotate(-90deg);
+}
+
+.btn-create-alert {
+  padding: 0.5rem 1rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btn-create-alert::before {
+  content: "＋";
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.btn-create-alert:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.alert-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9375rem;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+
+.alert-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.alert-toggle {
+  position: absolute;
+  bottom: 2.25rem;
+  right: 0.5rem;
+}
+
+.alert-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 3rem;
+}
+
+.alert-item-content:hover {
+  opacity: 0.7;
+}
+
+.alert-item-name {
+  font-weight: 500;
+  color: #0f172a;
+  font-size: 0.9375rem;
+}
+
+.alert-item-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.alert-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.alert-info-separator {
+  color: #cbd5e1;
+  margin: 0 0.125rem;
+}
+
+.alert-color-preview {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  vertical-align: middle;
+}
+
+.btn-delete-alert {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.5rem;
+  width: auto;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #dc2626;
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  font-weight: bold;
+  padding: 0;
+  margin: 0;
+}
+
+.btn-delete-alert:hover {
+  background: transparent;
+  color: #991b1b;
+  transform: scale(1.2);
+}
+
+.alert-disabled {
+  opacity: 0.5;
+  border-left: 4px solid #e2e8f0 !important;
+}
+
+/* Toggle Switch */
+.alert-toggle {
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.alert-toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.alert-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s;
+  border-radius: 22px;
+}
+
+.alert-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.alert-toggle-input:checked + .alert-toggle-slider {
+  background-color: #10b981;
+}
+
+.alert-toggle-input:checked + .alert-toggle-slider:before {
+  transform: translateX(18px);
+}
+
+/* Animation pour les items qui matchent une alerte */
+.item-card.alert-match {
+  border: 3px solid var(--alert-color, #10b981) !important;
+  animation: alertPulse 2s ease-in-out infinite;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px color-mix(in srgb, var(--alert-color, #10b981) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 30px color-mix(in srgb, var(--alert-color, #10b981) 60%, transparent);
+  }
+}
+
+/* Color Picker Modal */
+.color-picker-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-picker-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.color-picker-content {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  animation: colorPickerSlideIn 0.3s ease-out;
+}
+
+@keyframes colorPickerSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.color-picker-title {
+  margin: 0 0 1.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+}
+
+.color-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.color-picker-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.color-picker-option:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.color-picker-option.selected {
+  border-color: #1e293b;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #1e293b;
+}
+
+.color-picker-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btn-color-cancel {
+  padding: 0.625rem 1.5rem;
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-color-cancel:hover {
+  background: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+/* ==================== FIN ALERT SYSTEM ==================== */
+
+/* ==================== PICKUP POINTS SYSTEM ==================== */
+
+.pickup-points-system {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.pickup-system-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pickup-system-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pickup-system-title::before {
+  content: "📦";
+  font-size: 1.25rem;
+  transition: transform 0.3s;
+}
+
+.pickup-points-system.collapsed .pickup-system-title::before {
+  transform: rotate(-90deg);
+}
+
+.btn-create-pickup {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btn-create-pickup::before {
+  content: "＋";
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.btn-create-pickup:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.pickup-points-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pickup-empty {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9375rem;
+  padding: 1.5rem 0;
+  margin: 0;
+}
+
+.pickup-point-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.875rem;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.pickup-point-item:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.pickup-point-priority {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+}
+
+.pickup-point-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pickup-point-name {
+  font-weight: 500;
+  color: #0f172a;
+  font-size: 0.9375rem;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickup-point-address {
+  font-size: 0.8125rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickup-point-actions {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.btn-move-up,
+.btn-move-down {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.btn-move-up:hover,
+.btn-move-down:hover {
+  background: #cbd5e1;
+  transform: scale(1.05);
+}
+
+.btn-delete-pickup {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.btn-delete-pickup:hover {
+  background: #fee2e2;
+  transform: scale(1.1);
+}
+
+.btn-placeholder {
+  width: 28px;
+  height: 28px;
+}
+
+.pickup-system-info {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pickup-info-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Mode sombre pour le système de points relais */
+.vinted-dark-mode .pickup-points-system {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+.vinted-dark-mode .pickup-system-title {
+  color: #f1f5f9 !important;
+}
+
+.vinted-dark-mode .pickup-point-item {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.vinted-dark-mode .pickup-point-item:hover {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+
+.vinted-dark-mode .pickup-point-name {
+  color: #f1f5f9 !important;
+}
+
+.vinted-dark-mode .pickup-point-address,
+.vinted-dark-mode .pickup-empty,
+.vinted-dark-mode .pickup-info-text {
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .btn-move-up,
+.vinted-dark-mode .btn-move-down {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .btn-move-up:hover,
+.vinted-dark-mode .btn-move-down:hover {
+  background: #475569 !important;
+}
+
+.vinted-dark-mode .btn-delete-pickup {
+  color: #f87171 !important;
+}
+
+.vinted-dark-mode .btn-delete-pickup:hover {
+  background: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+.vinted-dark-mode .btn-create-pickup {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.vinted-dark-mode .pickup-system-info {
+  border-top-color: #334155 !important;
+}
+
+/* ==================== FIN PICKUP POINTS SYSTEM ==================== */
+
+/* Container principal */
+#vinted-monitor-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 2rem 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Grille d'items */
+.items-grid {
+  max-width: 1800px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .items-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .items-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Card d'item */
+.item-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  animation: fadeInSlide 0.5s ease;
+}
+
+/* Voyant d'alerte en haut à droite */
+.alert-indicator {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 10;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.9), 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: alertPing 2s ease-in-out infinite;
+}
+
+@keyframes alertPing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.9;
+  }
+}
+
+/* Animation pour les nouveaux items */
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animation alternative pour le premier chargement */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Highlight pour les tout nouveaux items */
+.item-card.new-item {
+  animation: highlightNew 0.6s ease;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4), 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes highlightNew {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0), 0 4px 6px rgba(0, 0, 0, 0.05);
+    transform: scale(0.95);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.6), 0 12px 24px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4), 0 8px 16px rgba(0, 0, 0, 0.15);
+    transform: scale(1);
+  }
+}
+
+.item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.item-link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+}
+
+.item-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.item-no-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 0.875rem;
+  z-index: 1;
+}
+
+.item-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+  z-index: 2;
+}
+
+.item-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.item-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.5rem;
+  z-index: 2;
+}
+
+.item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.badge {
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.item-price {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .monitor-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .monitor-controls {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  #brand-id-input {
+    width: 100%;
+  }
+
+  .btn-primary {
+    width: 100%;
+  }
+
+  .status-text {
+    width: 100%;
+    text-align: center;
+  }
+
+  .item-title {
+    font-size: 0.875rem;
+  }
+
+  .item-price {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+  }
+}
+
+/* Animations et transitions */
+.item-card {
+  will-change: transform, box-shadow;
+}
+
+.item-image {
+  transition: transform 0.3s ease;
+}
+
+.item-card:hover .item-image {
+  transform: scale(1.05);
+}
+
+/* Bouton Buy sur les cartes d'articles */
+.btn-buy-item {
+  position: absolute;
+  bottom: 25%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  opacity: 0;
+  min-width: 120px;
+}
+
+.item-card:hover .btn-buy-item {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.btn-buy-item:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateX(-50%) translateY(-3px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+}
+
+.btn-buy-item:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+.buy-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.buy-text {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.75px;
+  font-size: 1rem;
+}
+
+/* Mode sombre pour le bouton Buy */
+.vinted-dark-mode .btn-buy-item {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+}
+
+.vinted-dark-mode .btn-buy-item:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
+}
+
+/* Message de chargement */
+.items-grid:empty::after {
+  content: "En attente des premiers articles...";
+  display: block;
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #64748b;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+/* Cacher les boutons Buy quand désactivés */
+html.vinted-buy-button-disabled .btn-buy-item {
+  display: none !important;
+}
+

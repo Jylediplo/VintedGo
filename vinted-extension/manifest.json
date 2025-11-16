@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Vinted Monitor",
+  "version": "1.0.0",
+  "description": "Monitor en temps réel des nouveaux articles Vinted",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.vinted.fr/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.vinted.fr/*"],
+      "js": ["messages-notifier-bundled.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://www.vinted.fr/catalog*"],
+      "js": ["content-bundled.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://www.vinted.fr/items/*"],
+      "js": ["auto-buy.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://www.vinted.fr/checkout*"],
+      "js": ["auto-checkout.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icon.svg",
+    "48": "icon.svg",
+    "128": "icon.svg"
+  }
+}
+
