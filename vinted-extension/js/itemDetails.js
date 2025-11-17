@@ -1,6 +1,6 @@
 // Gestion de l'affichage des détails de produit dans une fenêtre transparente
-import { fetchItemDetails, sendOfferRequest, fetchConversation, sendMessage, fetchInbox, createConversationForItem, createTransactionForItem } from './messagesApi.js';
-import { extractSize, extractCondition, formatPrice } from './utils.js';
+import { createConversationForItem, fetchConversation, fetchInbox, fetchItemDetails, sendMessage, sendOfferRequest } from './messagesApi.js';
+import { extractCondition, extractSize, formatPrice } from './utils.js';
 
 /**
  * Extrait l'ID et le nom du produit depuis une URL Vinted
@@ -173,7 +173,6 @@ function renderItemDetails(modal, item) {
             📌 Épingler
           </button>
           <button class="vinted-item-offer-btn" data-item-id="${item.id}">Faire une offre</button>
-          <button class="vinted-item-message-btn" data-user-id="${seller.id || ''}" data-item-id="${item.id}">Contacter le vendeur</button>
         </div>
         <div class="vinted-item-conversation" id="vinted-item-conversation-${item.id}">
         </div>
@@ -213,19 +212,6 @@ function renderItemDetails(modal, item) {
     });
   }
   
-  // Gestionnaire pour le bouton de message
-  const messageBtn = body.querySelector('.vinted-item-message-btn');
-  if (messageBtn && seller.id) {
-    messageBtn.addEventListener('click', async () => {
-      const conversationContainer = modal.querySelector(`#vinted-item-conversation-${item.id}`);
-      if (conversationContainer) {
-        conversationContainer.style.display = 'block';
-        // Afficher directement la barre de message
-        renderEmptyConversation(conversationContainer, seller.id, item.id, item);
-      }
-    });
-  }
-  
   // Gestionnaire pour le bouton d'épinglage
   const pinBtn = body.querySelector('.vinted-item-pin-btn');
   if (pinBtn) {
@@ -242,8 +228,12 @@ function renderItemDetails(modal, item) {
     });
   }
   
-  // Charger automatiquement la conversation si elle existe
-  if (seller.id) {
+  // Afficher directement la barre d'envoi, puis charger la conversation en arrière-plan
+  const conversationContainer = modal.querySelector(`#vinted-item-conversation-${item.id}`);
+  if (conversationContainer && seller.id) {
+    // Afficher immédiatement la barre d'envoi vide
+    renderEmptyConversation(conversationContainer, seller.id, item.id, item);
+    // Charger la conversation en arrière-plan et remplacer si elle existe
     loadConversationForItem(item.id, seller.id, modal, item);
   }
 }
@@ -302,16 +292,71 @@ function showOfferDialogForItem(itemId, modal) {
     submitBtn.textContent = 'Envoi...';
     
     try {
-      // Créer une transaction pour cet item si elle n'existe pas
-      const transaction = await createTransactionForItem(itemId, parseFloat(price));
+      // Essayer de trouver une conversation existante pour cet item
+      const inbox = await fetchInbox(1, 50);
+      const conversations = inbox.conversations || [];
+      let conversation = conversations.find(conv => {
+        return conv.item?.id === parseInt(itemId) || 
+               conv.item?.id === itemId;
+      });
       
-      if (transaction && transaction.id) {
-        // Envoyer l'offre
-        await sendOfferRequest(transaction.id, price, 'EUR');
+      if (conversation && conversation.transaction?.id) {
+        // Si on a une transaction, envoyer l'offre directement
+        await sendOfferRequest(conversation.transaction.id, price, 'EUR');
         alert('Offre envoyée avec succès !');
         closeOfferModal();
+        
+        // Recharger la conversation pour afficher la nouvelle offre
+        const conversationContainer = modal?.querySelector(`#vinted-item-conversation-${itemId}`);
+        if (conversationContainer) {
+          const updatedConversation = await fetchConversation(conversation.id);
+          const seller = updatedConversation.opposite_user;
+          if (seller && seller.id) {
+            renderConversation(conversationContainer, updatedConversation, itemId, { id: itemId });
+          }
+        }
       } else {
-        throw new Error('Impossible de créer la transaction');
+        // Pas de transaction, essayer de créer une conversation puis une transaction
+        try {
+          // Récupérer les détails de l'item pour obtenir l'ID du vendeur
+          const itemDetails = await fetchItemDetails(itemId, '');
+          let sellerId = null;
+          if (itemDetails && itemDetails.user && itemDetails.user.id) {
+            sellerId = itemDetails.user.id;
+          }
+          
+          if (!sellerId) {
+            throw new Error('Impossible de récupérer l\'ID du vendeur');
+          }
+          
+          // Essayer de créer une conversation pour cet item
+          const newConversation = await createConversationForItem(itemId, sellerId, `Je souhaite faire une offre de ${price} EUR`, itemDetails);
+          
+          if (newConversation && newConversation.transaction?.id) {
+            // Si on a une transaction, envoyer l'offre directement
+            await sendOfferRequest(newConversation.transaction.id, price, 'EUR');
+            alert('Offre envoyée avec succès !');
+            closeOfferModal();
+            
+            // Recharger la conversation pour afficher la nouvelle offre
+            const conversationContainer = modal?.querySelector(`#vinted-item-conversation-${itemId}`);
+            if (conversationContainer) {
+              const updatedConversation = await fetchConversation(newConversation.id);
+              const seller = updatedConversation.opposite_user;
+              if (seller && seller.id) {
+                renderConversation(conversationContainer, updatedConversation, itemId, { id: itemId });
+              }
+            }
+          } else {
+            // Si la création de conversation a échoué, rediriger vers la page
+            alert('Pour faire une offre, veuillez d\'abord envoyer un message au vendeur depuis la conversation ci-dessous. Une fois la conversation créée, vous pourrez faire une offre.');
+            closeOfferModal();
+          }
+        } catch (createError) {
+          console.error("[Vinted Item] Erreur lors de la création de la conversation:", createError);
+          alert('Pour faire une offre, veuillez d\'abord envoyer un message au vendeur depuis la conversation ci-dessous. Une fois la conversation créée, vous pourrez faire une offre.');
+          closeOfferModal();
+        }
       }
     } catch (error) {
       console.error("[Vinted Item] Erreur lors de l'envoi de l'offre:", error);
@@ -362,18 +407,14 @@ async function loadConversationForItem(itemId, userId, modal, item) {
     });
     
     if (conversation) {
-      // Charger les détails de la conversation
+      // Charger les détails de la conversation et remplacer la barre d'envoi vide
       const conversationDetails = await fetchConversation(conversation.id);
       renderConversation(conversationContainer, conversationDetails, itemId, item);
-    } else {
-      // Aucune conversation trouvée - ne rien afficher (pas de message de chargement)
-      // La conversation sera chargée uniquement si l'utilisateur clique sur "Contacter le vendeur"
-      conversationContainer.style.display = 'none';
     }
+    // Si aucune conversation n'est trouvée, on garde la barre d'envoi vide déjà affichée
   } catch (error) {
     console.error("[Vinted Item] Erreur lors du chargement de la conversation:", error);
-    // Ne pas afficher d'erreur non plus si aucune conversation n'existe
-    conversationContainer.style.display = 'none';
+    // En cas d'erreur, on garde la barre d'envoi vide déjà affichée
   }
 }
 
@@ -474,14 +515,62 @@ function renderConversation(container, conversation, itemId, item) {
     
     try {
       // Si on a une conversation, envoyer le message
-      if (conversation.id) {
+      if (conversation && conversation.id) {
         await sendMessage(conversation.id, messageText);
         // Recharger la conversation
         const updatedConversation = await fetchConversation(conversation.id);
         renderConversation(container, updatedConversation, itemId, item);
       } else {
-        // Créer une nouvelle conversation (nécessite l'API Vinted)
-        alert('Pour envoyer un message, veuillez d\'abord contacter le vendeur depuis la page du produit.');
+        // Essayer de trouver une conversation existante
+        const inbox = await fetchInbox(1, 50);
+        const conversations = inbox.conversations || [];
+        const foundConversation = conversations.find(conv => {
+          return conv.item?.id === parseInt(itemId) || 
+                 conv.item?.id === itemId;
+        });
+        
+        if (foundConversation) {
+          // Charger et utiliser cette conversation
+          const conversationDetails = await fetchConversation(foundConversation.id);
+          await sendMessage(foundConversation.id, messageText);
+          const updatedConversation = await fetchConversation(foundConversation.id);
+          renderConversation(container, updatedConversation, itemId, item);
+        } else {
+          // Pas de conversation, essayer de créer une conversation
+          try {
+            // Récupérer les détails de l'item pour obtenir l'ID du vendeur
+            let sellerId = null;
+            if (!item || !item.user || !item.user.id) {
+              const itemDetails = await fetchItemDetails(itemId, item?.slug || '');
+              if (itemDetails && itemDetails.user && itemDetails.user.id) {
+                sellerId = itemDetails.user.id;
+              }
+            } else {
+              sellerId = item.user.id;
+            }
+            
+            if (!sellerId) {
+              throw new Error('Impossible de récupérer l\'ID du vendeur');
+            }
+            
+            const newConversation = await createConversationForItem(itemId, sellerId, messageText, item);
+            if (newConversation && newConversation.id) {
+              // Recharger la conversation
+              const updatedConversation = await fetchConversation(newConversation.id);
+              renderConversation(container, updatedConversation, itemId, item);
+            } else {
+              // Si la création a échoué, rediriger vers la page
+              const itemUrl = `https://www.vinted.fr/items/${itemId}${item?.slug ? '-' + item.slug : ''}`;
+              window.open(`${itemUrl}?action=message`, '_blank');
+              alert('Pour envoyer un message, veuillez d\'abord ouvrir la page du produit et cliquer sur "Message". Une fois la conversation créée, vous pourrez envoyer des messages directement depuis ici.');
+            }
+          } catch (createError) {
+            console.error("[Vinted Item] Erreur lors de la création de la conversation:", createError);
+            const itemUrl = `https://www.vinted.fr/items/${itemId}${item?.slug ? '-' + item.slug : ''}`;
+            window.open(`${itemUrl}?action=message`, '_blank');
+            alert('Pour envoyer un message, veuillez d\'abord ouvrir la page du produit et cliquer sur "Message". Une fois la conversation créée, vous pourrez envoyer des messages directement depuis ici.');
+          }
+        }
       }
       
       input.value = '';
@@ -605,6 +694,70 @@ function escapeHtml(text) {
 let isModalOpen = false;
 
 /**
+ * Ajoute un bouton "Faire une offre" sur les pages d'items Vinted
+ */
+function addOfferButtonToItemPage() {
+  // Vérifier si on est sur une page d'item
+  if (!window.location.pathname.match(/\/items\/\d+/)) return;
+  
+  // Chercher le bouton "Acheter" ou "Buy"
+  const buyButton = document.querySelector('button[class*="buy"], button[class*="purchase"], a[class*="buy"], button:has-text("Acheter"), button:has-text("Buy")');
+  
+  // Alternative: chercher par texte
+  const buttons = document.querySelectorAll('button, a[role="button"]');
+  let buyBtn = null;
+  for (const btn of buttons) {
+    const text = btn.textContent?.toLowerCase() || '';
+    if (text.includes('acheter') || text.includes('buy') || text.includes('purchase')) {
+      buyBtn = btn;
+      break;
+    }
+  }
+  
+  if (buyBtn && !document.querySelector('.vinted-offer-button-injected')) {
+    // Créer le bouton "Faire une offre"
+    const offerBtn = document.createElement('button');
+    offerBtn.className = 'vinted-offer-button-injected';
+    offerBtn.textContent = 'Faire une offre';
+    offerBtn.style.cssText = `
+      padding: 0.75rem 1.5rem;
+      background: #09B1BA;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 0.75rem;
+      transition: all 0.2s;
+    `;
+    
+    offerBtn.addEventListener('mouseenter', () => {
+      offerBtn.style.background = '#078a91';
+      offerBtn.style.transform = 'translateY(-1px)';
+    });
+    
+    offerBtn.addEventListener('mouseleave', () => {
+      offerBtn.style.background = '#09B1BA';
+      offerBtn.style.transform = 'translateY(0)';
+    });
+    
+    // Extraire l'ID de l'item depuis l'URL
+    const itemInfo = extractItemInfoFromUrl(window.location.href);
+    if (itemInfo && itemInfo.id) {
+      offerBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await showItemDetails(itemInfo.id, itemInfo.slug);
+      });
+    }
+    
+    // Insérer avant le bouton "Acheter"
+    buyBtn.parentNode.insertBefore(offerBtn, buyBtn);
+  }
+}
+
+/**
  * Initialise l'interception des clics sur les produits
  */
 export function initItemClickInterceptor() {
@@ -632,6 +785,30 @@ export function initItemClickInterceptor() {
     // Afficher les détails dans le modal
     await showItemDetails(itemInfo.id, itemInfo.slug);
   }, true); // Utiliser capture pour intercepter avant que le lien ne soit suivi
+  
+  // Ajouter le bouton "Faire une offre" sur les pages d'items
+  if (window.location.pathname.match(/\/items\/\d+/)) {
+    // Attendre que la page soit chargée
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(addOfferButtonToItemPage, 1000);
+      });
+    } else {
+      setTimeout(addOfferButtonToItemPage, 1000);
+    }
+    
+    // Observer les changements de DOM pour réajouter le bouton si nécessaire
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector('.vinted-offer-button-injected')) {
+        addOfferButtonToItemPage();
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
 }
 
 // ==========================================
