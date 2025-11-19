@@ -188,8 +188,8 @@ function injectNotificationStyles() {
       flex-direction: row;
       align-items: center;
       gap: 12px;
-      background: rgba(255, 255, 255, 0.15) !important;
-      background-color: rgba(255, 255, 255, 0.15) !important;
+      background: rgba(30, 41, 59, 0.15) !important;
+      background-color: rgba(30, 41, 59, 0.15) !important;
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
       border-radius: 12px;
@@ -697,19 +697,20 @@ function injectNotificationStyles() {
     .vinted-msg-action-title,
     .vinted-msg-offer-title {
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: 1rem;
       margin-bottom: 0.25rem;
     }
     
     .vinted-msg-status-subtitle,
     .vinted-msg-action-subtitle {
-      font-size: 0.8125rem;
-      color: #666;
+      font-size: 1.25rem;
+      color: #black;
+      font-weight: 600;
     }
     
     .vinted-dark-mode .vinted-msg-status-subtitle,
     .vinted-dark-mode .vinted-msg-action-subtitle {
-      color: #aaa;
+      color: #black;
     }
     
     .vinted-msg-offer-price {

@@ -14,6 +14,22 @@ html.vinted-dark-mode body,
   background: #0f172a !important;
   background-color: #0f172a !important;
   color: #e2e8f0 !important;
+  width: 100% !important;
+  left: 0 !important;
+}
+
+.content-container {
+  width: 100% !important;
+  flex: 1 !important;
+  left: 0 !important;
+  justify-content: left !important;
+}
+
+.site-content {
+  width: 100% !important;
+  flex: 1 !important;
+  left: 0 !important;
+  justify-content: left !important;
 }
 
 /* Header et navigation */
@@ -28,6 +44,53 @@ html.vinted-dark-mode body,
 .vinted-dark-mode .u-ui-border-bottom {
   border-color: #334155 !important;
 }
+
+.vinted-dark-mode .web_ui__Input__input, .vinted-dark-mode .u-ui-padding-vertical-x-small {
+  background: #0f172a !important;
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+/* Barre des items épinglés - sticky à 40px du top lors du scroll */
+.vinted-pinned-items-bar {
+  position: sticky !important;
+  top: 50px !important;
+  z-index: 10001 !important;
+  background: white !important;
+  background-color: white !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: none !important;
+  margin-top: 0 !important;
+}
+
+/* La barre reste à 40px du top lors du scroll */
+.vinted-pinned-items-bar.scrolled {
+  position: sticky !important;
+  top: 50px !important;
+}
+
+.vinted-pinned-items-container {
+  display: flex !important;
+  gap: 0.75rem !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  max-width: 100% !important;
+}
+
+.vinted-pinned-items-container::-webkit-scrollbar {
+  display: none !important;
+}
+
+.vinted-dark-mode .vinted-pinned-items-bar{
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
 
 /* Footer */
 .vinted-dark-mode footer,
@@ -115,6 +178,7 @@ html.vinted-dark-mode body,
 /* Monitor container */
 .vinted-dark-mode #vinted-monitor-container {
   background: #0f172a !important;
+  width: 100% !important;  
 }
 
 /* Item cards */
@@ -512,6 +576,8 @@ main#catalog,
   border-radius: 16px;
   padding: 1.25rem;
   margin-bottom: 0;
+  width: 100%;
+  max-width: 300px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
 }
@@ -527,7 +593,7 @@ main#catalog,
 .alert-system-title,
 .pickup-system-title {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.375rem;
   font-weight: 600;
   color: #0f172a;
   display: flex;
@@ -536,6 +602,7 @@ main#catalog,
   cursor: pointer;
   user-select: none;
   transition: all 0.2s;
+  line-height: 1.5;
 }
 
 .filter-manager-title:hover,
@@ -547,7 +614,7 @@ main#catalog,
 
 .filter-manager-title::before {
   content: "⚡";
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   transition: transform 0.3s;
 }
 
@@ -561,18 +628,19 @@ main#catalog,
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  line-height: 1.5;
 }
 
 .btn-save-filter::before {
   content: "＋";
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 400;
 }
 
@@ -591,9 +659,10 @@ main#catalog,
 .filter-empty {
   text-align: center;
   color: #94a3b8;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   padding: 2rem 1rem;
   margin: 0;
+  line-height: 1.5;
 }
 
 .filter-item {
@@ -642,23 +711,26 @@ main#catalog,
 .filter-item-name {
   font-weight: 500;
   color: #0f172a;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
+  line-height: 1.5;
 }
 
 .filter-item-search {
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #3b82f6;
   font-style: italic;
   margin-top: 0.125rem;
+  line-height: 1.5;
 }
 
 .filter-item-count {
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #64748b;
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-top: 0.125rem;
+  line-height: 1.5;
 }
 
 .filter-item-count::before {
@@ -667,13 +739,14 @@ main#catalog,
 }
 
 .filter-active-badge {
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #3b82f6;
   font-weight: 500;
   margin-top: 0.125rem;
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  line-height: 1.5;
 }
 
 .filter-active-badge::before {
@@ -715,6 +788,8 @@ main#catalog,
   margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
+  width: 100%;
+  max-width: 300px;
 }
 
 .alert-system-header {
@@ -725,18 +800,19 @@ main#catalog,
 }
 
 .alert-system-title {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 600;
   color: #0f172a;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.5;
 }
 
 .alert-system-title::before {
   content: "🔔";
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   transition: transform 0.3s;
 }
 
@@ -750,18 +826,19 @@ main#catalog,
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  line-height: 1.5;
 }
 
 .btn-create-alert::before {
   content: "＋";
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 400;
 }
 
@@ -780,9 +857,10 @@ main#catalog,
 .alert-empty {
   text-align: center;
   color: #94a3b8;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   padding: 2rem 1rem;
   margin: 0;
+  line-height: 1.5;
 }
 
 .alert-item {
@@ -820,16 +898,18 @@ main#catalog,
 .alert-item-name {
   font-weight: 500;
   color: #0f172a;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
+  line-height: 1.5;
 }
 
 .alert-item-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #64748b;
   flex-wrap: wrap;
+  line-height: 1.5;
 }
 
 .alert-info-item {
@@ -1072,6 +1152,8 @@ main#catalog,
   margin-top: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
+  width: 100%;
+  max-width: 300px;
 }
 
 .pickup-system-header {
@@ -1083,17 +1165,18 @@ main#catalog,
 
 .pickup-system-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 600;
   color: #0f172a;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1.5;
 }
 
 .pickup-system-title::before {
   content: "📦";
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   transition: transform 0.3s;
 }
 
@@ -1107,18 +1190,19 @@ main#catalog,
   color: white;
   border: none;
   border-radius: 10px;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.375rem;
+  line-height: 1.5;
 }
 
 .btn-create-pickup::before {
   content: "＋";
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 400;
 }
 
@@ -1137,9 +1221,10 @@ main#catalog,
 .pickup-empty {
   text-align: center;
   color: #64748b;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   padding: 1.5rem 0;
   margin: 0;
+  line-height: 1.5;
 }
 
 .pickup-point-item {
@@ -1169,8 +1254,9 @@ main#catalog,
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .pickup-point-content {
@@ -1181,18 +1267,20 @@ main#catalog,
 .pickup-point-name {
   font-weight: 500;
   color: #0f172a;
-  font-size: 0.9375rem;
+  font-size: 1.125rem;
   margin-bottom: 0.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.5;
   white-space: nowrap;
 }
 
 .pickup-point-address {
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #64748b;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.5;
   white-space: nowrap;
 }
 
@@ -1259,9 +1347,10 @@ main#catalog,
 
 .pickup-info-text {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   color: #64748b;
   text-align: center;
+  line-height: 1.5;
 }
 
 /* Mode sombre pour le système de points relais */
@@ -1287,6 +1376,32 @@ main#catalog,
 
 .vinted-dark-mode .pickup-point-name {
   color: #f1f5f9 !important;
+}
+
+/* Adaptation responsive pour filtres, alertes et points relais */
+@media (max-width: 400px) {
+  .filter-manager,
+  .alert-system,
+  .pickup-points-system {
+    max-width: calc(100% - 40px);
+    width: calc(100% - 40px);
+  }
+}
+
+@media (min-width: 401px) and (max-width: 600px) {
+  .filter-manager,
+  .alert-system,
+  .pickup-points-system {
+    max-width: 280px;
+  }
+}
+
+@media (min-width: 601px) {
+  .filter-manager,
+  .alert-system,
+  .pickup-points-system {
+    max-width: 300px;
+  }
 }
 
 .vinted-dark-mode .pickup-point-address,
@@ -1362,7 +1477,7 @@ main#catalog,
 .item-card {
   position: relative;
   aspect-ratio: 3 / 4;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
   background: #fff;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);

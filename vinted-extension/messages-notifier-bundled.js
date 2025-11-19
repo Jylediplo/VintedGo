@@ -852,8 +852,89 @@ function getNotificationContainer() {
     container = document.createElement('div');
     container.id = 'vinted-notif-container';
     container.className = 'vinted-notif-container';
-    document.body.appendChild(container);
   }
+  
+  // Créer ou récupérer le conteneur manager (comme filter-manager/alert-system)
+  let messagesManager = document.getElementById('vinted-messages-manager');
+  if (!messagesManager) {
+    messagesManager = document.createElement('div');
+    messagesManager.id = 'vinted-messages-manager';
+    messagesManager.className = 'vinted-messages-manager';
+    messagesManager.innerHTML = `
+      <div class="vinted-messages-manager-header">
+        <h3 class="vinted-messages-manager-title" id="vinted-messages-manager-title-toggle">
+          Messages
+          <span class="vinted-messages-count" id="vinted-messages-count">0</span>
+        </h3>
+      </div>
+    `;
+    
+    // Ajouter le toggle pour collapser/expand
+    const titleToggle = messagesManager.querySelector('#vinted-messages-manager-title-toggle');
+    if (titleToggle) {
+      titleToggle.addEventListener('click', () => {
+        const isCollapsed = messagesManager.classList.contains('collapsed');
+        if (isCollapsed) {
+          messagesManager.classList.remove('collapsed');
+          container.style.display = 'flex';
+        } else {
+          messagesManager.classList.add('collapsed');
+          container.style.display = 'none';
+        }
+      });
+    }
+    
+    // Insérer le conteneur dans le manager
+    messagesManager.appendChild(container);
+  }
+  
+  // Créer ou récupérer le conteneur sticky pour les messages (comme pour les filtres)
+  let stickyContainer = document.getElementById('messages-sticky-container');
+  if (!stickyContainer) {
+    stickyContainer = document.createElement('div');
+    stickyContainer.id = 'messages-sticky-container';
+    stickyContainer.className = 'messages-sticky-container';
+  }
+  
+  // Insérer le manager dans le sticky container
+  if (messagesManager.parentNode !== stickyContainer) {
+    stickyContainer.appendChild(messagesManager);
+  }
+  
+  // Insérer le sticky container dans la sidebar droite, en haut des filtres sauvegardés
+  const sidebarStickyContainer = document.getElementById('sidebar-sticky-container');
+  const filterManager = document.getElementById('filter-manager');
+  
+  if (sidebarStickyContainer) {
+    // Insérer avant le filter-manager (en haut)
+    if (filterManager) {
+      if (stickyContainer.parentNode !== sidebarStickyContainer) {
+        sidebarStickyContainer.insertBefore(stickyContainer, filterManager);
+      } else if (stickyContainer.nextSibling !== filterManager) {
+        // Reorganiser si l'ordre n'est pas correct
+        sidebarStickyContainer.insertBefore(stickyContainer, filterManager);
+      }
+    } else {
+      // Si pas de filter-manager, insérer en premier
+      if (stickyContainer.parentNode !== sidebarStickyContainer) {
+        sidebarStickyContainer.insertBefore(stickyContainer, sidebarStickyContainer.firstChild);
+      }
+    }
+  } else {
+    // Si le sticky container n'existe pas encore, insérer temporairement dans la sidebar
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      if (stickyContainer.parentNode !== sidebar) {
+        sidebar.insertBefore(stickyContainer, sidebar.firstChild);
+      }
+    } else {
+      // Fallback : insérer dans le body
+      if (stickyContainer.parentNode !== document.body) {
+        document.body.appendChild(stickyContainer);
+      }
+    }
+  }
+  
   return container;
 }
 
@@ -918,21 +999,130 @@ function injectNotificationStyles() {
   const style = document.createElement('style');
   style.id = 'vinted-notif-styles';
   style.textContent = `
+    /* Container sticky pour messages (comme pour filtres/alertes) */
+    .messages-sticky-container {
+      position: relative;
+      background: transparent;
+      width: 100%;
+      margin-bottom: 0.75rem;
+    }
+    
+    /* Conteneur principal des messages avec le même style que filtres/alertes */
+    .vinted-messages-manager {
+      background: white;
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      width: 300px;
+    }
+    
+    /* Mode sombre pour le conteneur de messages */
+    .vinted-dark-mode .vinted-messages-manager,
+    html.vinted-dark-mode .vinted-messages-manager,
+    body.vinted-dark-mode .vinted-messages-manager {
+      background: #0f172a !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    .vinted-messages-manager-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .vinted-messages-manager-title {
+      margin: 0;
+      font-size: 1.375rem;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    
+    /* Mode sombre pour le titre */
+    .vinted-dark-mode .vinted-messages-manager-title,
+    html.vinted-dark-mode .vinted-messages-manager-title,
+    body.vinted-dark-mode .vinted-messages-manager-title {
+      color: #f1f5f9 !important;
+    }
+    
+    .vinted-messages-count {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: #3b82f6;
+      background: #eff6ff;
+      padding: 0.25rem 0.625rem;
+      border-radius: 12px;
+      margin-left: 0.25rem;
+      line-height: 1.4;
+    }
+    
+    /* Mode sombre pour le compteur */
+    .vinted-dark-mode .vinted-messages-count,
+    html.vinted-dark-mode .vinted-messages-count,
+    body.vinted-dark-mode .vinted-messages-count {
+      color: #60a5fa !important;
+      background: #1e3a5f !important;
+    }
+    
+    .vinted-messages-manager-title:hover {
+      color: #3b82f6;
+      transform: translateX(2px);
+    }
+    
+    /* Mode sombre pour le hover */
+    .vinted-dark-mode .vinted-messages-manager-title:hover,
+    html.vinted-dark-mode .vinted-messages-manager-title:hover,
+    body.vinted-dark-mode .vinted-messages-manager-title:hover {
+      color: #60a5fa !important;
+    }
+    
+    .vinted-messages-manager-title::before {
+      content: "💬";
+      font-size: 1.25rem;
+      transition: transform 0.3s;
+    }
+    
+    .vinted-messages-manager.collapsed .vinted-messages-manager-title::before {
+      transform: rotate(-90deg);
+    }
+    
     .vinted-notif-container {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      z-index: 10000;
+      position: relative;
+      width: 100%;
       padding: 0;
       display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 12px;
-      overflow-x: auto;
-      overflow-y: hidden;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.625rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: calc(100vh - 300px);
       pointer-events: none;
+    }
+    
+    /* Sur mobile, ajuster la largeur */
+    @media (max-width: 1024px) {
+      .messages-sticky-container {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        position: relative;
+        top: 0;
+      }
+      
+      .vinted-notif-container {
+        max-height: 500px;
+      }
     }
     
     /* Forcer la transparence du conteneur même en mode sombre */
@@ -973,41 +1163,61 @@ function injectNotificationStyles() {
     
     .vinted-message-notification {
       flex-shrink: 0;
-      width: 250px;
-      max-width: 250px;
-      min-width: 250px;
+      width: 85%;
+      max-width: 85%;
+      min-width: 0;
       height: auto;
       max-height: none;
       min-height: auto;
-      background: transparent !important;
-      background-color: transparent !important;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      background: #f8fafc !important;
+      background-color: #f8fafc !important;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
-      padding: 12px;
+      padding: 1rem 1.25rem;
       cursor: pointer;
-      transition: width 0.3s ease, max-width 0.3s ease, min-width 0.3s ease;
       position: relative;
-      animation: popIn 0.3s ease;
       display: flex;
       flex-direction: column;
-      align-self: flex-end;
+      align-self: stretch;
       pointer-events: auto;
+      margin: 0 auto;
+    }
+    
+    .vinted-message-notification:hover {
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1;
+    }
+    
+    /* Mode sombre pour les notifications */
+    .vinted-dark-mode .vinted-message-notification,
+    html.vinted-dark-mode .vinted-message-notification,
+    body.vinted-dark-mode .vinted-message-notification {
+      background: #1e293b !important;
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    
+    .vinted-dark-mode .vinted-message-notification:hover,
+    html.vinted-dark-mode .vinted-message-notification:hover,
+    body.vinted-dark-mode .vinted-message-notification:hover {
+      background: #334155 !important;
+      border-color: #475569 !important;
     }
     
     .vinted-message-notification.vinted-notif-expanded {
-      width: 400px !important;
-      max-width: 400px !important;
-      min-width: 400px !important;
+      width: 85% !important;
+      max-width: 85% !important;
+      min-width: 0 !important;
       max-height: 80vh !important;
       height: auto;
-      align-self: flex-end;
+      align-self: stretch;
+      margin: 0 auto;
     }
     
     .vinted-message-notification:not(.vinted-notif-expanded) {
       height: auto;
       max-height: none;
-      align-self: flex-end;
+      align-self: stretch;
     }
     
     .vinted-notif-header {
@@ -1015,12 +1225,10 @@ function injectNotificationStyles() {
       flex-direction: row;
       align-items: center;
       gap: 12px;
-      background: rgba(255, 255, 255, 0.15) !important;
-      background-color: rgba(255, 255, 255, 0.15) !important;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      border-radius: 12px;
-      padding: 12px;
+      background: transparent !important;
+      background-color: transparent !important;
+      border-radius: 0;
+      padding: 0;
     }
     
     .vinted-notif-avatar {
@@ -1028,7 +1236,7 @@ function injectNotificationStyles() {
       height: 50px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #09B1BA;
+      border: 2px solid #3b82f6;
       flex-shrink: 0;
     }
     
@@ -1037,32 +1245,41 @@ function injectNotificationStyles() {
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
     
     .vinted-notif-username {
       font-weight: 700;
-      font-size: 13px;
-      color: #1a1a1a;
+      font-size: 16px;
+      line-height: 1.4;
+      color: #0f172a;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     
-    .vinted-dark-mode .vinted-notif-username {
-      color: #ffffff;
+    /* Mode sombre pour le nom d'utilisateur */
+    .vinted-dark-mode .vinted-notif-username,
+    html.vinted-dark-mode .vinted-notif-username,
+    body.vinted-dark-mode .vinted-notif-username {
+      color: #f1f5f9 !important;
     }
     
     .vinted-notif-description {
-      font-size: 11px;
-      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #475569;
+      font-weight: 400;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     
-    .vinted-dark-mode .vinted-notif-description {
-      color: #aaa;
+    /* Mode sombre pour la description */
+    .vinted-dark-mode .vinted-notif-description,
+    html.vinted-dark-mode .vinted-notif-description,
+    body.vinted-dark-mode .vinted-notif-description {
+      color: #cbd5e1 !important;
     }
     
     .vinted-notif-item-photo {
@@ -1070,34 +1287,27 @@ function injectNotificationStyles() {
       height: 50px;
       object-fit: cover;
       border-radius: 8px;
-      border: 2px solid #f0f0f0;
+      border: 2px solid #e2e8f0;
       flex-shrink: 0;
     }
     
-    .vinted-dark-mode .vinted-notif-item-photo {
-      border-color: #333;
-    }
-    
-    /* Forcer la transparence même en mode sombre */
-    .vinted-dark-mode .vinted-message-notification,
-    html.vinted-dark-mode .vinted-message-notification,
-    body.vinted-dark-mode .vinted-message-notification {
-      background: transparent !important;
-      background-color: transparent !important;
+    /* Mode sombre pour la photo d'article */
+    .vinted-dark-mode .vinted-notif-item-photo,
+    html.vinted-dark-mode .vinted-notif-item-photo,
+    body.vinted-dark-mode .vinted-notif-item-photo {
+      border-color: #334155 !important;
     }
     
     .vinted-notif-messages {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      border-top: 1px solid #e2e8f0;
       max-height: 400px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      background: rgba(255, 255, 255, 0.15) !important;
-      background-color: rgba(255, 255, 255, 0.15) !important;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      background: transparent !important;
+      background-color: transparent !important;
       border-radius: 12px;
       padding: 12px;
       scrollbar-width: none;
@@ -1108,22 +1318,18 @@ function injectNotificationStyles() {
       display: none;
     }
     
-    .vinted-dark-mode .vinted-notif-messages {
-      border-top-color: rgba(255, 255, 255, 0.1);
+    /* Mode sombre pour les messages */
+    .vinted-dark-mode .vinted-notif-messages,
+    html.vinted-dark-mode .vinted-notif-messages,
+    body.vinted-dark-mode .vinted-notif-messages {
+      border-top-color: #334155 !important;
     }
     
     .vinted-dark-mode .vinted-notif-header,
     html.vinted-dark-mode .vinted-notif-header,
     body.vinted-dark-mode .vinted-notif-header {
-      background: rgba(255, 255, 255, 0.25) !important;
-      background-color: rgba(255, 255, 255, 0.25) !important;
-    }
-    
-    .vinted-dark-mode .vinted-notif-messages,
-    html.vinted-dark-mode .vinted-notif-messages,
-    body.vinted-dark-mode .vinted-notif-messages {
-      background: rgba(255, 255, 255, 0.25) !important;
-      background-color: rgba(255, 255, 255, 0.25) !important;
+      background: transparent !important;
+      background-color: transparent !important;
     }
     
     
@@ -1137,43 +1343,52 @@ function injectNotificationStyles() {
     .vinted-notif-messages-error {
       text-align: center;
       padding: 1rem;
-      color: #666;
-      font-size: 0.875rem;
+      color: #64748b;
+      font-size: 1rem;
+      line-height: 1.5;
     }
     
+    /* Mode sombre pour les messages de chargement/erreur */
     .vinted-dark-mode .vinted-notif-messages-loading,
-    .vinted-dark-mode .vinted-notif-messages-error {
-      color: #aaa;
+    html.vinted-dark-mode .vinted-notif-messages-loading,
+    body.vinted-dark-mode .vinted-notif-messages-loading,
+    .vinted-dark-mode .vinted-notif-messages-error,
+    html.vinted-dark-mode .vinted-notif-messages-error,
+    body.vinted-dark-mode .vinted-notif-messages-error {
+      color: #94a3b8 !important;
     }
     
     .vinted-notif-messages-input-container {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      border-top: 1px solid #e2e8f0;
       display: flex;
       gap: 8px;
       align-items: center;
     }
     
-    .vinted-dark-mode .vinted-notif-messages-input-container {
-      border-top-color: rgba(255, 255, 255, 0.1);
+    /* Mode sombre pour le conteneur d'input */
+    .vinted-dark-mode .vinted-notif-messages-input-container,
+    html.vinted-dark-mode .vinted-notif-messages-input-container,
+    body.vinted-dark-mode .vinted-notif-messages-input-container {
+      border-top-color: #334155 !important;
     }
     
     .vinted-notif-messages-input {
       flex: 1;
       padding: 8px 12px;
-      border: 1px solid rgba(0, 0, 0, 0.2);
+      border: 1px solid #e2e8f0;
       border-radius: 20px;
       font-size: 0.875rem;
-      background: rgba(255, 255, 255, 0.5);
-      color: #1a1a1a;
+      background: #ffffff;
+      color: #0f172a;
       outline: none;
       transition: all 0.2s;
     }
     
     .vinted-notif-messages-input:focus {
       border-color: #09B1BA;
-      background: rgba(255, 255, 255, 0.8);
+      background: #ffffff;
       box-shadow: 0 0 0 2px rgba(9, 177, 186, 0.2);
     }
     
@@ -1182,23 +1397,30 @@ function injectNotificationStyles() {
       cursor: not-allowed;
     }
     
-    .vinted-dark-mode .vinted-notif-messages-input {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+    /* Mode sombre pour l'input */
+    .vinted-dark-mode .vinted-notif-messages-input,
+    html.vinted-dark-mode .vinted-notif-messages-input,
+    body.vinted-dark-mode .vinted-notif-messages-input {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #ffffff !important;
     }
     
-    .vinted-dark-mode .vinted-notif-messages-input:focus {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #09B1BA;
+    .vinted-dark-mode .vinted-notif-messages-input:focus,
+    html.vinted-dark-mode .vinted-notif-messages-input:focus,
+    body.vinted-dark-mode .vinted-notif-messages-input:focus {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border-color: #09B1BA !important;
     }
     
     .vinted-notif-messages-input::placeholder {
-      color: #999;
+      color: #94a3b8;
     }
     
-    .vinted-dark-mode .vinted-notif-messages-input::placeholder {
-      color: #666;
+    .vinted-dark-mode .vinted-notif-messages-input::placeholder,
+    html.vinted-dark-mode .vinted-notif-messages-input::placeholder,
+    body.vinted-dark-mode .vinted-notif-messages-input::placeholder {
+      color: #64748b !important;
     }
     
     .vinted-notif-messages-send {
@@ -1239,23 +1461,35 @@ function injectNotificationStyles() {
     /* Styles pour les messages dans la notification */
     .vinted-notif-messages .vinted-msg-item {
       max-width: 100%;
-      font-size: 0.8125rem;
+      font-size: 1rem;
+      line-height: 1.5;
     }
     
     .vinted-notif-messages .vinted-msg-body {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8125rem;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      line-height: 1.5;
+      color: #0f172a;
+    }
+    
+    /* Mode sombre pour le corps des messages */
+    .vinted-dark-mode .vinted-notif-messages .vinted-msg-body,
+    html.vinted-dark-mode .vinted-notif-messages .vinted-msg-body,
+    body.vinted-dark-mode .vinted-notif-messages .vinted-msg-body {
+      color: #f1f5f9 !important;
     }
     
     .vinted-notif-messages .vinted-msg-time {
-      font-size: 0.6875rem;
+      font-size: 0.75rem;
+      line-height: 1.4;
     }
     
     .vinted-notif-messages .vinted-msg-status,
     .vinted-notif-messages .vinted-msg-action,
     .vinted-notif-messages .vinted-msg-offer {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8125rem;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      line-height: 1.5;
     }
     
     @keyframes popIn {
@@ -1269,10 +1503,6 @@ function injectNotificationStyles() {
       }
     }
     
-    .vinted-message-notification:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-    }
     
     .vinted-notif-close {
       position: absolute;
@@ -1398,22 +1628,24 @@ function injectNotificationStyles() {
     
     .vinted-conversation-username {
       font-weight: 600;
-      font-size: 1rem;
-      color: #1a1a1a;
+      font-size: 1.125rem;
+      line-height: 1.5;
+      color: #0f172a;
     }
     
     .vinted-dark-mode .vinted-conversation-username {
-      color: #ffffff;
+      color: #f1f5f9 !important;
     }
     
     .vinted-conversation-subtitle {
-      font-size: 0.875rem;
-      color: #666;
+      font-size: 1rem;
+      line-height: 1.5;
+      color: #475569;
       margin-top: 0.25rem;
     }
     
     .vinted-dark-mode .vinted-conversation-subtitle {
-      color: #aaa;
+      color: #cbd5e1 !important;
     }
     
     .vinted-conversation-close {
@@ -1487,11 +1719,14 @@ function injectNotificationStyles() {
     }
     
     .vinted-msg-body {
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1.125rem;
       border-radius: 12px;
       background: #f0f0f0;
-      color: #1a1a1a;
+      color: #0f172a;
       word-wrap: break-word;
+      font-size: 1rem;
+      line-height: 1.5;
+      font-weight: 400;
     }
     
     .vinted-msg-current-user .vinted-msg-body {
@@ -1507,10 +1742,13 @@ function injectNotificationStyles() {
     .vinted-msg-status,
     .vinted-msg-action,
     .vinted-msg-offer {
-      padding: 0.75rem 1rem;
+      padding: 0.875rem 1.125rem;
       border-radius: 12px;
       background: #f8f8f8;
       border: 1px solid #e0e0e0;
+      font-size: 1rem;
+      line-height: 1.5;
+      color: #0f172a;
     }
     
     .vinted-dark-mode .vinted-msg-status,
@@ -1524,19 +1762,28 @@ function injectNotificationStyles() {
     .vinted-msg-action-title,
     .vinted-msg-offer-title {
       font-weight: 600;
-      font-size: 0.875rem;
-      margin-bottom: 0.25rem;
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 0.375rem;
+      color: #0f172a;
+    }
+    
+    .vinted-dark-mode .vinted-msg-status-title,
+    .vinted-dark-mode .vinted-msg-action-title,
+    .vinted-dark-mode .vinted-msg-offer-title {
+      color: #f1f5f9 !important;
     }
     
     .vinted-msg-status-subtitle,
     .vinted-msg-action-subtitle {
-      font-size: 0.8125rem;
-      color: #666;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: #475569;
     }
     
     .vinted-dark-mode .vinted-msg-status-subtitle,
     .vinted-dark-mode .vinted-msg-action-subtitle {
-      color: #aaa;
+      color: #cbd5e1 !important;
     }
     
     .vinted-msg-offer-price {
@@ -1606,7 +1853,13 @@ function injectNotificationStyles() {
     .vinted-conversation-loading {
       padding: 2rem;
       text-align: center;
-      color: #666;
+      color: #475569;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    
+    .vinted-dark-mode .vinted-conversation-loading {
+      color: #cbd5e1 !important;
     }
     
     @keyframes fadeIn {
@@ -2442,6 +2695,14 @@ function showOfferDialog(transactionId, conversationId, messagesContainer, trans
  * Affiche une notification pour une nouvelle conversation non lue
  * @param {Object} conversationInfo - Informations de la conversation
  */
+function updateMessagesCount() {
+  const countElement = document.getElementById('vinted-messages-count');
+  if (countElement) {
+    const count = notificationState.activeNotifications.size;
+    countElement.textContent = count > 0 ? `(${count})` : '';
+  }
+}
+
 function showNotification(conversationInfo) {
   // Ne pas afficher si déjà affichée
   if (notificationState.activeNotifications.has(conversationInfo.id)) {
@@ -2453,6 +2714,9 @@ function showNotification(conversationInfo) {
   container.appendChild(notification);
   
   notificationState.activeNotifications.set(conversationInfo.id, notification);
+  
+  // Mettre à jour le compteur
+  updateMessagesCount();
   
   console.log(`[Vinted Messages] Notification affichée pour la conversation ${conversationInfo.id}`);
 }
@@ -2469,6 +2733,9 @@ function removeNotification(conversationId) {
     setTimeout(() => {
       notification.remove();
       notificationState.activeNotifications.delete(conversationId);
+      
+      // Mettre à jour le compteur
+      updateMessagesCount();
       
       // Supprimer le conteneur s'il est vide
       const container = document.getElementById('vinted-notif-container');
@@ -2564,6 +2831,20 @@ async function toggleNotificationExpansion(notification, conversationId) {
     messagesContainer.style.display = 'none';
     notification.classList.remove('vinted-notif-expanded');
   } else {
+    // Fermer toutes les autres conversations ouvertes
+    const container = getNotificationContainer();
+    const allNotifications = container.querySelectorAll('.vinted-message-notification');
+    allNotifications.forEach(otherNotification => {
+      if (otherNotification !== notification && otherNotification.dataset.expanded === 'true') {
+        otherNotification.dataset.expanded = 'false';
+        const otherMessagesContainer = otherNotification.querySelector('.vinted-notif-messages');
+        if (otherMessagesContainer) {
+          otherMessagesContainer.style.display = 'none';
+        }
+        otherNotification.classList.remove('vinted-notif-expanded');
+      }
+    });
+    
     // Déplier
     notification.dataset.expanded = 'true';
     notification.classList.add('vinted-notif-expanded');
@@ -3186,8 +3467,8 @@ function renderItemDetails(modal, item) {
           </div>
         </div>
         <div class="vinted-item-actions">
-          <button class="vinted-item-pin-btn" data-item-id="${item.id}" title="Épingler cet article">
-            📌 Épingler
+          <button class="vinted-item-pin-btn" data-item-id="${item.id}" title="Ajouter aux favoris">
+            ❤️ Ajouter aux favoris
           </button>
           <button class="vinted-item-offer-btn" data-item-id="${item.id}">Faire une offre</button>
         </div>
@@ -3229,18 +3510,28 @@ function renderItemDetails(modal, item) {
     });
   }
   
-  // Gestionnaire pour le bouton d'épinglage
+  // Gestionnaire pour le bouton d'épinglage (favoris)
   const pinBtn = body.querySelector('.vinted-item-pin-btn');
   if (pinBtn) {
-    const isPinned = isItemPinned(item.id);
-    if (isPinned) {
-      pinBtn.textContent = '📌 Épinglé';
-      pinBtn.classList.add('pinned');
-    }
-    pinBtn.addEventListener('click', () => {
-      togglePinItem(item);
-      const isNowPinned = isItemPinned(item.id);
-      pinBtn.textContent = isNowPinned ? '📌 Épinglé' : '📌 Épingler';
+    // Vérifier l'état initial de manière asynchrone
+    isItemPinned(item.id).then(isPinned => {
+      if (isPinned) {
+        pinBtn.textContent = '❤️ Retirer des favoris';
+        pinBtn.title = 'Retirer des favoris';
+        pinBtn.classList.add('pinned');
+      }
+    });
+    
+    pinBtn.addEventListener('click', async () => {
+      await togglePinItem(item);
+      const isNowPinned = await isItemPinned(item.id);
+      if (isNowPinned) {
+        pinBtn.textContent = '❤️ Retirer des favoris';
+        pinBtn.title = 'Retirer des favoris';
+      } else {
+        pinBtn.textContent = '❤️ Ajouter aux favoris';
+        pinBtn.title = 'Ajouter aux favoris';
+      }
       pinBtn.classList.toggle('pinned', isNowPinned);
     });
   }
@@ -3829,99 +4120,285 @@ function initItemClickInterceptor() {
 }
 
 // ==========================================
-// Gestion des items épinglés
+// Gestion des items épinglés (utilise les favoris Vinted)
 // ==========================================
 
-const PINNED_ITEMS_STORAGE_KEY = 'vinted_pinned_items';
+// Cache pour les favoris
+let cachedFavourites = null;
+let favouritesCacheTime = 0;
+const FAVOURITES_CACHE_DURATION = 60000; // 1 minute
 
 /**
- * Récupère les items épinglés depuis le stockage
- * @returns {Array} - Liste des items épinglés
+ * Récupère l'user_id depuis les cookies
+ * @returns {string|null} - User ID
  */
-function getPinnedItems() {
+function getUserId() {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'v_uid') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * Récupère le token CSRF depuis les cookies ou les meta tags
+ * @returns {Promise<string|null>} - Token CSRF
+ */
+async function getCsrfToken() {
+  // Chercher dans les scripts inline
   try {
-    const stored = localStorage.getItem(PINNED_ITEMS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const scripts = document.querySelectorAll('script:not([src])');
+    for (const script of scripts) {
+      const scriptContent = script.textContent || script.innerHTML;
+      if (scriptContent && scriptContent.includes('CSRF_TOKEN')) {
+        const patterns = [
+          /"CSRF_TOKEN"\s*:\s*"([a-f0-9-]{36,})"/i,
+          /CSRF_TOKEN"\s*:\s*"([a-f0-9-]{36,})"/i,
+          /CSRF_TOKEN[\\"]*:\s*[\\"]*([a-f0-9-]{36,})/i
+        ];
+        
+        for (const pattern of patterns) {
+          const match = scriptContent.match(pattern);
+          if (match && match[1] && match[1].length > 20) {
+            return match[1];
+          }
+        }
+      }
+    }
   } catch (e) {
+    // Ignorer les erreurs
+  }
+  return null;
+}
+
+/**
+ * Récupère l'anon_id depuis les cookies
+ * @returns {string|null} - Anon ID
+ */
+function getAnonId() {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'anon_id') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * Récupère les favoris depuis l'API Vinted
+ * @returns {Promise<Array>} - Liste des favoris
+ */
+async function getFavouritesFromAPI() {
+  const userId = getUserId();
+  if (!userId) {
+    console.warn("[Vinted Favourites] User ID non trouvé");
     return [];
   }
-}
 
-/**
- * Sauvegarde les items épinglés
- * @param {Array} items - Liste des items épinglés
- */
-function savePinnedItems(items) {
+  // Utiliser le cache si disponible et récent
+  const now = Date.now();
+  if (cachedFavourites && (now - favouritesCacheTime) < FAVOURITES_CACHE_DURATION) {
+    return cachedFavourites;
+  }
+
   try {
-    localStorage.setItem(PINNED_ITEMS_STORAGE_KEY, JSON.stringify(items));
-  } catch (e) {
-    console.error("[Vinted Item] Erreur lors de la sauvegarde des items épinglés:", e);
+    const url = `https://www.vinted.fr/api/v2/users/${userId}/items/favourites`;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'x-anon-id': getAnonId() || '',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const favourites = data.items || [];
+    
+    // Mettre en cache
+    cachedFavourites = favourites;
+    favouritesCacheTime = now;
+    
+    return favourites;
+  } catch (error) {
+    console.error("[Vinted Favourites] Erreur lors de la récupération des favoris:", error);
+    // Retourner le cache si disponible en cas d'erreur
+    return cachedFavourites || [];
   }
 }
 
 /**
- * Vérifie si un item est épinglé
- * @param {string|number} itemId - ID de l'item
- * @returns {boolean}
+ * Récupère les items épinglés (favoris) depuis l'API
+ * @returns {Promise<Array>} - Liste des items épinglés
  */
-function isItemPinned(itemId) {
-  const pinned = getPinnedItems();
-  return pinned.some(item => String(item.id) === String(itemId));
+async function getPinnedItems() {
+  const favourites = await getFavouritesFromAPI();
+  return favourites.map(item => ({
+    id: String(item.id),
+    title: item.title,
+    price: item.price?.amount || '',
+    currency: item.price?.currency_code || 'EUR',
+    photo: item.photo?.url || '',
+    url: item.url || `https://www.vinted.fr/items/${item.id}`,
+    slug: item.url ? item.url.split('/').pop().replace(/^\d+-/, '') : ''
+  }));
 }
 
 /**
- * Épingle ou désépingle un item
+ * Vérifie si un item est épinglé (dans les favoris)
+ * @param {string|number} itemId - ID de l'item
+ * @returns {Promise<boolean>}
+ */
+async function isItemPinned(itemId) {
+  const favourites = await getFavouritesFromAPI();
+  return favourites.some(item => String(item.id) === String(itemId));
+}
+
+/**
+ * Ajoute un item aux favoris Vinted
+ * @param {string|number} itemId - ID de l'item
+ * @param {string} itemPath - Chemin de l'item (ex: /items/7580796632-camiseta-nino-carhartt)
+ * @returns {Promise<boolean>} - Succès
+ */
+async function addToFavourites(itemId, itemPath) {
+  try {
+    const csrfToken = await getCsrfToken();
+    const anonId = getAnonId();
+    const userId = getUserId();
+
+    if (!csrfToken) {
+      console.error("[Vinted Favourites] Token CSRF non trouvé");
+      return false;
+    }
+
+    const url = 'https://www.vinted.fr/relay/events';
+    const payload = [{
+      event: "user.click",
+      anon_id: anonId || "",
+      user_id: userId ? parseInt(userId) : null,
+      extra: {
+        path: itemPath || `/items/${itemId}`,
+        screen: "item",
+        target: "favorite"
+      },
+      lang_code: "fr",
+      time: Date.now()
+    }];
+
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/json',
+        'x-csrf-token': csrfToken,
+        'x-anon-id': anonId || '',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur API: ${response.status}`);
+    }
+
+    // Invalider le cache
+    cachedFavourites = null;
+    favouritesCacheTime = 0;
+
+    return true;
+  } catch (error) {
+    console.error("[Vinted Favourites] Erreur lors de l'ajout aux favoris:", error);
+    return false;
+  }
+}
+
+/**
+ * Retire un item des favoris Vinted (en cliquant à nouveau sur le bouton favori)
+ * @param {string|number} itemId - ID de l'item
+ * @param {string} itemPath - Chemin de l'item
+ * @returns {Promise<boolean>} - Succès
+ */
+async function removeFromFavourites(itemId, itemPath) {
+  // Pour retirer, on fait la même requête (toggle)
+  return await addToFavourites(itemId, itemPath);
+}
+
+/**
+ * Épingle ou désépingle un item (toggle favori)
  * @param {Object} item - Données de l'item
  */
-function togglePinItem(item) {
-  const pinned = getPinnedItems();
+async function togglePinItem(item) {
   const itemId = String(item.id);
-  const index = pinned.findIndex(p => String(p.id) === itemId);
-  
-  if (index >= 0) {
-    // Désépingler
-    pinned.splice(index, 1);
-  } else {
-    // Épingler - utiliser la première photo formatée
-    const photos = item.photos || [];
-    let photoUrl = '';
-    if (photos.length > 0) {
-      const firstPhoto = photos[0];
-      const url = typeof firstPhoto === 'string' ? firstPhoto : (firstPhoto.url || '');
-      photoUrl = url.replace(/\/\d+x\d+\//, '/f800/');
+  // Construire le path correctement : /items/{id}-{slug}
+  let itemPath = `/items/${itemId}`;
+  if (item.slug) {
+    itemPath += `-${item.slug}`;
+  } else if (item.url) {
+    try {
+      const url = new URL(item.url);
+      itemPath = url.pathname;
+    } catch (e) {
+      // Si l'URL est invalide, utiliser le format par défaut
     }
-    
-    pinned.push({
-      id: itemId,
-      title: item.title,
-      price: item.price,
-      currency: item.currency || 'EUR',
-      photo: photoUrl,
-      url: `https://www.vinted.fr/items/${itemId}${item.slug ? '-' + item.slug : ''}`,
-      slug: item.slug || ''
-    });
   }
   
-  savePinnedItems(pinned);
-  renderPinnedItemsBar();
+  // L'API Vinted utilise un toggle, donc on envoie toujours la même requête
+  // qui va basculer l'état actuel
+  await addToFavourites(itemId, itemPath);
+  
+  // Attendre un peu pour que l'API se synchronise
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Invalider le cache et recharger
+  cachedFavourites = null;
+  favouritesCacheTime = 0;
+  await renderPinnedItemsBar();
 }
 
 /**
- * Supprime un item épinglé
+ * Supprime un item épinglé (retire des favoris)
  * @param {string|number} itemId - ID de l'item
  */
-function unpinItem(itemId) {
-  const pinned = getPinnedItems();
-  const filtered = pinned.filter(item => String(item.id) !== String(itemId));
-  savePinnedItems(filtered);
-  renderPinnedItemsBar();
+async function unpinItem(itemId) {
+  const favourites = await getFavouritesFromAPI();
+  const item = favourites.find(f => String(f.id) === String(itemId));
+  
+  if (item) {
+    let itemPath = `/items/${itemId}`;
+    if (item.url) {
+      try {
+        const url = new URL(item.url);
+        itemPath = url.pathname;
+      } catch (e) {
+        // Si l'URL est invalide, utiliser le format par défaut
+      }
+    }
+    
+    await removeFromFavourites(itemId, itemPath);
+    
+    // Attendre un peu pour que l'API se synchronise
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Invalider le cache et recharger
+    cachedFavourites = null;
+    favouritesCacheTime = 0;
+    await renderPinnedItemsBar();
+  }
 }
 
 /**
- * Rend la barre des items épinglés
+ * Rend la barre des items épinglés (favoris)
  */
-function renderPinnedItemsBar() {
-  const pinned = getPinnedItems();
+async function renderPinnedItemsBar() {
+  const pinned = await getPinnedItems();
   
   // Supprimer l'ancienne barre si elle existe
   const existingBar = document.getElementById('vinted-pinned-items-bar');
@@ -3940,7 +4417,7 @@ function renderPinnedItemsBar() {
       ${pinned.map(item => `
         <div class="vinted-pinned-item" data-item-id="${item.id}">
           <img src="${item.photo || ''}" alt="${escapeHtml(item.title)}" class="vinted-pinned-item-photo">
-          <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Désépingler">×</button>
+          <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Retirer des favoris">×</button>
         </div>
       `).join('')}
     </div>
@@ -3967,23 +4444,25 @@ function renderPinnedItemsBar() {
   });
   
   bar.querySelectorAll('.vinted-pinned-item-unpin').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const itemId = btn.dataset.itemId;
-      unpinItem(itemId);
+      await unpinItem(itemId);
     });
   });
 }
 
 // Initialiser quand le DOM est prêt
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     initItemClickInterceptor();
-    renderPinnedItemsBar();
+    await renderPinnedItemsBar();
   });
 } else {
   initItemClickInterceptor();
-  renderPinnedItemsBar();
+  (async () => {
+    await renderPinnedItemsBar();
+  })();
 }
 
 // Gérer le style de la barre lors du scroll (fond sombre et padding)
@@ -4062,8 +4541,37 @@ function startSystem() {
     console.log("[Vinted Messages] 🔔 Démarrage du système de notifications");
     console.log("[Vinted Messages] Intervalle: 10 secondes");
     
+    // Initialiser le conteneur de messages dès le démarrage (même vide)
+    // Cela garantit qu'il sera au bon endroit dès le début
+    getNotificationContainer();
+    
+    // Observer pour détecter quand la sidebar sticky container est créé et repositionner les messages
+    const observer = new MutationObserver(() => {
+      const sidebarStickyContainer = document.getElementById('sidebar-sticky-container');
+      const stickyContainer = document.getElementById('messages-sticky-container');
+      const filterManager = document.getElementById('filter-manager');
+      
+      if (sidebarStickyContainer && stickyContainer && stickyContainer.parentNode !== sidebarStickyContainer) {
+        // Le sticky container existe maintenant, repositionner les messages en haut
+        if (filterManager) {
+          sidebarStickyContainer.insertBefore(stickyContainer, filterManager);
+        } else {
+          sidebarStickyContainer.insertBefore(stickyContainer, sidebarStickyContainer.firstChild);
+        }
+      }
+    });
+    
+    // Observer les changements dans le body pour détecter la création de la sidebar
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
     // Démarrer les notifications (toutes les 10 secondes)
     startMessageNotifications(10000);
+    
+    // Initialiser le compteur de messages
+    updateMessagesCount();
     
     // Initialiser l'interception des clics sur les produits
     if (typeof initItemClickInterceptor === 'function') {

@@ -169,8 +169,8 @@ function renderItemDetails(modal, item) {
           </div>
         </div>
         <div class="vinted-item-actions">
-          <button class="vinted-item-pin-btn" data-item-id="${item.id}" title="Épingler cet article">
-            📌 Épingler
+          <button class="vinted-item-pin-btn" data-item-id="${item.id}" title="Ajouter aux favoris">
+            ❤️ Ajouter aux favoris
           </button>
           <button class="vinted-item-offer-btn" data-item-id="${item.id}">Faire une offre</button>
         </div>
@@ -212,18 +212,28 @@ function renderItemDetails(modal, item) {
     });
   }
   
-  // Gestionnaire pour le bouton d'épinglage
+  // Gestionnaire pour le bouton d'épinglage (favoris)
   const pinBtn = body.querySelector('.vinted-item-pin-btn');
   if (pinBtn) {
-    const isPinned = isItemPinned(item.id);
-    if (isPinned) {
-      pinBtn.textContent = '📌 Épinglé';
-      pinBtn.classList.add('pinned');
-    }
-    pinBtn.addEventListener('click', () => {
-      togglePinItem(item);
-      const isNowPinned = isItemPinned(item.id);
-      pinBtn.textContent = isNowPinned ? '📌 Épinglé' : '📌 Épingler';
+    // Vérifier l'état initial de manière asynchrone
+    isItemPinned(item.id).then(isPinned => {
+      if (isPinned) {
+        pinBtn.textContent = '❤️ Retirer des favoris';
+        pinBtn.title = 'Retirer des favoris';
+        pinBtn.classList.add('pinned');
+      }
+    });
+    
+    pinBtn.addEventListener('click', async () => {
+      await togglePinItem(item);
+      const isNowPinned = await isItemPinned(item.id);
+      if (isNowPinned) {
+        pinBtn.textContent = '❤️ Retirer des favoris';
+        pinBtn.title = 'Retirer des favoris';
+      } else {
+        pinBtn.textContent = '❤️ Ajouter aux favoris';
+        pinBtn.title = 'Ajouter aux favoris';
+      }
       pinBtn.classList.toggle('pinned', isNowPinned);
     });
   }
@@ -812,99 +822,287 @@ export function initItemClickInterceptor() {
 }
 
 // ==========================================
-// Gestion des items épinglés
+// Gestion des items épinglés (utilise les favoris Vinted)
 // ==========================================
 
-const PINNED_ITEMS_STORAGE_KEY = 'vinted_pinned_items';
+// Cache pour les favoris
+let cachedFavourites = null;
+let favouritesCacheTime = 0;
+const FAVOURITES_CACHE_DURATION = 60000; // 1 minute
 
 /**
- * Récupère les items épinglés depuis le stockage
- * @returns {Array} - Liste des items épinglés
+ * Récupère l'user_id depuis les cookies
+ * @returns {string|null} - User ID
  */
-function getPinnedItems() {
+function getUserId() {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'v_uid') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * Récupère le token CSRF depuis les cookies ou les meta tags
+ * @returns {Promise<string|null>} - Token CSRF
+ */
+async function getCsrfToken() {
+  // Chercher dans les scripts inline
   try {
-    const stored = localStorage.getItem(PINNED_ITEMS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const scripts = document.querySelectorAll('script:not([src])');
+    for (const script of scripts) {
+      const scriptContent = script.textContent || script.innerHTML;
+      if (scriptContent && scriptContent.includes('CSRF_TOKEN')) {
+        const patterns = [
+          /"CSRF_TOKEN"\s*:\s*"([a-f0-9-]{36,})"/i,
+          /CSRF_TOKEN"\s*:\s*"([a-f0-9-]{36,})"/i,
+          /CSRF_TOKEN[\\"]*:\s*[\\"]*([a-f0-9-]{36,})/i
+        ];
+        
+        for (const pattern of patterns) {
+          const match = scriptContent.match(pattern);
+          if (match && match[1] && match[1].length > 20) {
+            return match[1];
+          }
+        }
+      }
+    }
   } catch (e) {
+    // Ignorer les erreurs
+  }
+  return null;
+}
+
+/**
+ * Récupère l'anon_id depuis les cookies
+ * @returns {string|null} - Anon ID
+ */
+function getAnonId() {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'anon_id') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+/**
+ * Récupère les favoris depuis l'API Vinted
+ * @returns {Promise<Array>} - Liste des favoris
+ */
+async function getFavouritesFromAPI() {
+  const userId = getUserId();
+  if (!userId) {
+    console.warn("[Vinted Favourites] User ID non trouvé");
     return [];
   }
-}
 
-/**
- * Sauvegarde les items épinglés
- * @param {Array} items - Liste des items épinglés
- */
-function savePinnedItems(items) {
+  // Utiliser le cache si disponible et récent
+  const now = Date.now();
+  if (cachedFavourites && (now - favouritesCacheTime) < FAVOURITES_CACHE_DURATION) {
+    return cachedFavourites;
+  }
+
   try {
-    localStorage.setItem(PINNED_ITEMS_STORAGE_KEY, JSON.stringify(items));
-  } catch (e) {
-    console.error("[Vinted Item] Erreur lors de la sauvegarde des items épinglés:", e);
+    const url = `https://www.vinted.fr/api/v2/users/${userId}/items/favourites`;
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'accept': 'application/json, text/plain, */*',
+        'x-anon-id': getAnonId() || '',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const favourites = data.items || [];
+    
+    // Mettre en cache
+    cachedFavourites = favourites;
+    favouritesCacheTime = now;
+    
+    return favourites;
+  } catch (error) {
+    console.error("[Vinted Favourites] Erreur lors de la récupération des favoris:", error);
+    // Retourner le cache si disponible en cas d'erreur
+    return cachedFavourites || [];
   }
 }
 
 /**
- * Vérifie si un item est épinglé
- * @param {string|number} itemId - ID de l'item
- * @returns {boolean}
+ * Récupère les items épinglés (favoris) depuis l'API
+ * @returns {Promise<Array>} - Liste des items épinglés
  */
-function isItemPinned(itemId) {
-  const pinned = getPinnedItems();
-  return pinned.some(item => String(item.id) === String(itemId));
+async function getPinnedItems() {
+  const favourites = await getFavouritesFromAPI();
+  return favourites.map(item => ({
+    id: String(item.id),
+    title: item.title,
+    price: item.price?.amount || '',
+    currency: item.price?.currency_code || 'EUR',
+    photo: item.photo?.url || '',
+    url: item.url || `https://www.vinted.fr/items/${item.id}`,
+    slug: item.url ? item.url.split('/').pop().replace(/^\d+-/, '') : ''
+  }));
 }
 
 /**
- * Épingle ou désépingle un item
+ * Vérifie si un item est épinglé (dans les favoris)
+ * @param {string|number} itemId - ID de l'item
+ * @returns {Promise<boolean>}
+ */
+async function isItemPinned(itemId) {
+  const favourites = await getFavouritesFromAPI();
+  return favourites.some(item => String(item.id) === String(itemId));
+}
+
+/**
+ * Ajoute un item aux favoris Vinted
+ * @param {string|number} itemId - ID de l'item
+ * @param {string} itemPath - Chemin de l'item (ex: /items/7580796632-camiseta-nino-carhartt)
+ * @returns {Promise<boolean>} - Succès
+ */
+async function addToFavourites(itemId, itemPath) {
+  try {
+    const csrfToken = await getCsrfToken();
+    const anonId = getAnonId();
+    const userId = getUserId();
+
+    if (!csrfToken) {
+      console.error("[Vinted Favourites] Token CSRF non trouvé");
+      return false;
+    }
+
+    const url = 'https://www.vinted.fr/relay/events';
+    const payload = [{
+      event: "user.click",
+      anon_id: anonId || "",
+      user_id: userId ? parseInt(userId) : null,
+      extra: {
+        path: itemPath || `/items/${itemId}`,
+        screen: "item",
+        target: "favorite"
+      },
+      lang_code: "fr",
+      time: Date.now()
+    }];
+
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/json',
+        'x-csrf-token': csrfToken,
+        'x-anon-id': anonId || '',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur API: ${response.status}`);
+    }
+
+    // Invalider le cache
+    cachedFavourites = null;
+    favouritesCacheTime = 0;
+
+    return true;
+  } catch (error) {
+    console.error("[Vinted Favourites] Erreur lors de l'ajout aux favoris:", error);
+    return false;
+  }
+}
+
+/**
+ * Retire un item des favoris Vinted (en cliquant à nouveau sur le bouton favori)
+ * @param {string|number} itemId - ID de l'item
+ * @param {string} itemPath - Chemin de l'item
+ * @returns {Promise<boolean>} - Succès
+ */
+async function removeFromFavourites(itemId, itemPath) {
+  // Pour retirer, on fait la même requête (toggle)
+  return await addToFavourites(itemId, itemPath);
+}
+
+/**
+ * Épingle ou désépingle un item (toggle favori)
  * @param {Object} item - Données de l'item
  */
-function togglePinItem(item) {
-  const pinned = getPinnedItems();
+async function togglePinItem(item) {
   const itemId = String(item.id);
-  const index = pinned.findIndex(p => String(p.id) === itemId);
-  
-  if (index >= 0) {
-    // Désépingler
-    pinned.splice(index, 1);
-  } else {
-    // Épingler - utiliser la première photo formatée
-    const photos = item.photos || [];
-    let photoUrl = '';
-    if (photos.length > 0) {
-      const firstPhoto = photos[0];
-      const url = typeof firstPhoto === 'string' ? firstPhoto : (firstPhoto.url || '');
-      photoUrl = url.replace(/\/\d+x\d+\//, '/f800/');
+  // Construire le path correctement : /items/{id}-{slug}
+  let itemPath = `/items/${itemId}`;
+  if (item.slug) {
+    itemPath += `-${item.slug}`;
+  } else if (item.url) {
+    try {
+      const url = new URL(item.url);
+      itemPath = url.pathname;
+    } catch (e) {
+      // Si l'URL est invalide, utiliser le format par défaut
     }
-    
-    pinned.push({
-      id: itemId,
-      title: item.title,
-      price: item.price,
-      currency: item.currency || 'EUR',
-      photo: photoUrl,
-      url: `https://www.vinted.fr/items/${itemId}${item.slug ? '-' + item.slug : ''}`,
-      slug: item.slug || ''
-    });
   }
   
-  savePinnedItems(pinned);
-  renderPinnedItemsBar();
+  const isCurrentlyPinned = await isItemPinned(itemId);
+  
+  // L'API Vinted utilise un toggle, donc on envoie toujours la même requête
+  // qui va basculer l'état actuel
+  await addToFavourites(itemId, itemPath);
+  
+  // Attendre un peu pour que l'API se synchronise
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Invalider le cache et recharger
+  cachedFavourites = null;
+  favouritesCacheTime = 0;
+  await renderPinnedItemsBar();
 }
 
 /**
- * Supprime un item épinglé
+ * Supprime un item épinglé (retire des favoris)
  * @param {string|number} itemId - ID de l'item
  */
-function unpinItem(itemId) {
-  const pinned = getPinnedItems();
-  const filtered = pinned.filter(item => String(item.id) !== String(itemId));
-  savePinnedItems(filtered);
-  renderPinnedItemsBar();
+async function unpinItem(itemId) {
+  const favourites = await getFavouritesFromAPI();
+  const item = favourites.find(f => String(f.id) === String(itemId));
+  
+  if (item) {
+    let itemPath = `/items/${itemId}`;
+    if (item.url) {
+      try {
+        const url = new URL(item.url);
+        itemPath = url.pathname;
+      } catch (e) {
+        // Si l'URL est invalide, utiliser le format par défaut
+      }
+    }
+    
+    await removeFromFavourites(itemId, itemPath);
+    
+    // Attendre un peu pour que l'API se synchronise
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Invalider le cache et recharger
+    cachedFavourites = null;
+    favouritesCacheTime = 0;
+    await renderPinnedItemsBar();
+  }
 }
 
 /**
- * Rend la barre des items épinglés
+ * Rend la barre des items épinglés (favoris)
  */
-function renderPinnedItemsBar() {
-  const pinned = getPinnedItems();
+async function renderPinnedItemsBar() {
+  const pinned = await getPinnedItems();
   
   // Supprimer l'ancienne barre si elle existe
   const existingBar = document.getElementById('vinted-pinned-items-bar');
@@ -923,7 +1121,7 @@ function renderPinnedItemsBar() {
       ${pinned.map(item => `
         <div class="vinted-pinned-item" data-item-id="${item.id}">
           <img src="${item.photo || ''}" alt="${escapeHtml(item.title)}" class="vinted-pinned-item-photo">
-          <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Désépingler">×</button>
+          <button class="vinted-pinned-item-unpin" data-item-id="${item.id}" title="Retirer des favoris">×</button>
         </div>
       `).join('')}
     </div>
@@ -950,23 +1148,25 @@ function renderPinnedItemsBar() {
   });
   
   bar.querySelectorAll('.vinted-pinned-item-unpin').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const itemId = btn.dataset.itemId;
-      unpinItem(itemId);
+      await unpinItem(itemId);
     });
   });
 }
 
 // Initialiser quand le DOM est prêt
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     initItemClickInterceptor();
-    renderPinnedItemsBar();
+    await renderPinnedItemsBar();
   });
 } else {
   initItemClickInterceptor();
-  renderPinnedItemsBar();
+  (async () => {
+    await renderPinnedItemsBar();
+  })();
 }
 
 // Gérer le style de la barre lors du scroll (fond sombre et padding)

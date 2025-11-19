@@ -134,7 +134,7 @@
       bottom: 0;
       left: 0;
       right: 0;
-      width: 100%;
+      width: 100px;
       background: transparent !important;
       background-color: transparent !important;
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
@@ -186,7 +186,8 @@
     
     .vinted-message-notification {
       flex-shrink: 0;
-      width: 200px;
+      width: 100%;
+      max-width: 300px;
       background: rgba(255, 255, 255, 0.25) !important;
       background-color: rgba(255, 255, 255, 0.25) !important;
       backdrop-filter: blur(10px);
@@ -198,6 +199,26 @@
       position: relative;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       animation: popIn 0.3s ease;
+    }
+    
+    /* Adaptation pour les petits écrans */
+    @media (max-width: 400px) {
+      .vinted-message-notification {
+        max-width: calc(100% - 40px);
+        width: calc(100% - 40px);
+      }
+    }
+    
+    @media (min-width: 401px) and (max-width: 600px) {
+      .vinted-message-notification {
+        max-width: 280px;
+      }
+    }
+    
+    @media (min-width: 601px) {
+      .vinted-message-notification {
+        max-width: 300px;
+      }
     }
     
     /* Forcer la transparence même en mode sombre */
