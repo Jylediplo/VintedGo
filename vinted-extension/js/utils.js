@@ -9,7 +9,14 @@ export function escapeHtml(text) {
 
 // Formater le prix
 export function formatPrice(item) {
-  const amount = item.price?.amount || item.price?.value || item.price || 0;
+  // Gérer différents formats de prix
+  let amount = item.price?.amount || item.price?.value || item.price || 0;
+  
+  // Si amount est une chaîne, la convertir en nombre
+  if (typeof amount === 'string') {
+    amount = parseFloat(amount.replace(',', '.')) || 0;
+  }
+  
   const currency = item.price?.currency || item.price?.currency_code || "EUR";
 
   return new Intl.NumberFormat("fr-FR", {

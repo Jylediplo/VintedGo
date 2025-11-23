@@ -1,7 +1,6 @@
 // Point d'entrée pour le système de notifications de messages
 // Ce fichier est chargé sur toutes les pages Vinted
 
-import { startMessageNotifications } from './js/messagesNotifier.js';
 
 // Fonction pour vérifier si on est sur une vraie page Vinted (pas une iframe ou autre)
 function isMainVintedPage() {
@@ -37,11 +36,10 @@ function initMessageNotifications() {
 
 function startSystem() {
   try {
-    console.log("[Vinted Messages] 🔔 Démarrage du système de notifications");
-    console.log("[Vinted Messages] Intervalle: 10 secondes");
+    console.log("[Vinted Messages] 🔔 Système de notifications désactivé");
     
-    // Démarrer les notifications (toutes les 10 secondes)
-    startMessageNotifications(10000);
+    // Ne plus démarrer les notifications - elles sont désactivées
+    // startMessageNotifications(10000);
     
     // Initialiser l'interception des clics sur les produits
     if (typeof initItemClickInterceptor === 'function') {
@@ -49,7 +47,7 @@ function startSystem() {
       console.log("[Vinted Item] ✅ Interception des clics sur les produits activée");
     }
     
-    console.log("[Vinted Messages] ✅ Système démarré avec succès");
+    console.log("[Vinted Messages] ✅ Système démarré (notifications désactivées)");
   } catch (error) {
     console.error("[Vinted Messages] ❌ Erreur lors du démarrage:", error);
   }

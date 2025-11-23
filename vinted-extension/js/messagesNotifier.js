@@ -1,5 +1,6 @@
 // Système de notification pour les nouveaux messages
 import { fetchConversation, fetchInbox, formatConversationInfo, getUnreadConversations, sendMessage, sendOfferRequest } from './messagesApi.js';
+import { showItemDetails, initItemClickInterceptor } from './itemDetails.js';
 
 // Configuration
 const CONFIG = {
@@ -1142,10 +1143,55 @@ function injectNotificationStyles() {
       color: #09B1BA;
     }
     
+    .vinted-item-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
+    }
+    
+    .vinted-item-status-label {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .vinted-item-status-value {
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .vinted-item-status-sold .vinted-item-status-value {
+      color: #ef4444;
+      font-weight: 600;
+    }
+    
     .vinted-item-meta {
       display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      border-radius: 8px;
+    }
+    
+    .vinted-item-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .vinted-item-meta-label {
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      min-width: 80px;
+    }
+    
+    .vinted-item-meta-value {
+      color: rgba(255, 255, 255, 0.9);
+      flex: 1;
     }
     
     .vinted-item-meta-item {
@@ -1204,6 +1250,221 @@ function injectNotificationStyles() {
     
     .vinted-item-seller-name {
       font-weight: 500;
+    }
+    
+    .vinted-item-seller-id {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-left: 0.5rem;
+    }
+    
+    /* Skeleton Loading Styles */
+    .vinted-item-details-skeleton {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    
+    @media (max-width: 768px) {
+      .vinted-item-details-skeleton {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .vinted-item-skeleton-photos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .vinted-item-skeleton-photo-main {
+      width: 100%;
+      max-width: 300px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-thumbnails {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .vinted-item-skeleton-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .vinted-item-skeleton-title {
+      height: 32px;
+      width: 80%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-price {
+      height: 40px;
+      width: 120px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(9, 177, 186, 0.3) 25%, rgba(9, 177, 186, 0.5) 50%, rgba(9, 177, 186, 0.3) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+    }
+    
+    .vinted-item-skeleton-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .vinted-item-skeleton-label {
+      height: 20px;
+      width: 80px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-value {
+      height: 20px;
+      flex: 1;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-description {
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .vinted-item-skeleton-line {
+      height: 16px;
+      width: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-line.short {
+      width: 60%;
+    }
+    
+    .vinted-item-skeleton-seller {
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .vinted-item-skeleton-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-seller-name {
+      height: 20px;
+      width: 120px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    .vinted-item-skeleton-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .vinted-item-skeleton-button {
+      flex: 1;
+      min-width: 150px;
+      height: 44px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(9, 177, 186, 0.3) 25%, rgba(9, 177, 186, 0.5) 50%, rgba(9, 177, 186, 0.3) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes skeleton-loading {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+    
+    .vinted-item-error {
+      padding: 2rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .vinted-item-error h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      color: #ef4444;
+    }
+    
+    .vinted-item-error p {
+      margin: 0 0 1.5rem 0;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .vinted-item-error-close {
+      padding: 0.75rem 1.5rem;
+      background: #09B1BA;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .vinted-item-error-close:hover {
+      background: #078a91;
+      transform: translateY(-1px);
     }
     
     .vinted-item-actions {
@@ -1662,9 +1923,48 @@ function removeNotification(conversationId) {
  * @returns {string} - HTML formaté du message
  */
 function formatMessage(message, currentUserId, conversationUrl, transaction = null) {
-  const isCurrentUser = message.entity?.user_id === currentUserId;
+  // Déterminer si le message est de l'utilisateur actuel
+  const messageUserId = message.entity?.user_id;
+  const isCurrentUser = messageUserId === currentUserId;
   const messageClass = isCurrentUser ? 'vinted-msg-current-user' : 'vinted-msg-other-user';
-  const timeAgo = message.created_time_ago || new Date(message.created_at_ts).toLocaleString('fr-FR');
+  
+  // Formater la date - created_at_ts peut être une chaîne ISO 8601 ou un timestamp
+  let timeAgo = message.created_time_ago || '';
+  if (!timeAgo && message.created_at_ts) {
+    try {
+      // Si c'est une chaîne ISO 8601, la parser directement
+      const date = new Date(message.created_at_ts);
+      if (!isNaN(date.getTime())) {
+        // Formater la date de manière relative
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) {
+          timeAgo = 'À l\'instant';
+        } else if (diffMins < 60) {
+          timeAgo = `Il y a ${diffMins} min`;
+        } else if (diffHours < 24) {
+          timeAgo = `Il y a ${diffHours}h`;
+        } else if (diffDays < 7) {
+          timeAgo = `Il y a ${diffDays}j`;
+        } else {
+          timeAgo = new Intl.DateTimeFormat('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }).format(date);
+        }
+      }
+    } catch (e) {
+      console.error("[Vinted Messages] Erreur lors du formatage de la date:", e, message.created_at_ts);
+      timeAgo = '';
+    }
+  }
   
   let content = '';
   
@@ -1697,19 +1997,35 @@ function formatMessage(message, currentUserId, conversationUrl, transaction = nu
       </div>
     `;
   } else if (message.entity_type === 'offer_request_message') {
+    // Message d'offre demandée (par l'acheteur)
+    const statusText = message.entity.status_title ? ` (${escapeHtml(message.entity.status_title)})` : '';
     content = `
       <div class="vinted-msg-offer">
-        <div class="vinted-msg-offer-title">${escapeHtml(message.entity.title)}</div>
-        <div class="vinted-msg-offer-price">${escapeHtml(message.entity.price_label)}</div>
-        ${message.entity.original_price_label ? `<div class="vinted-msg-offer-original">${escapeHtml(message.entity.original_price_label)}</div>` : ''}
+        <div class="vinted-msg-offer-title">${escapeHtml(message.entity.title || 'Offre demandée')}${statusText}</div>
+        <div class="vinted-msg-offer-price">${escapeHtml(message.entity.price_label || message.entity.body || '')}</div>
+        ${message.entity.original_price_label ? `<div class="vinted-msg-offer-original">Prix original: ${escapeHtml(message.entity.original_price_label)}</div>` : ''}
       </div>
     `;
+  } else if (message.entity_type === 'offer_message') {
+    // Message d'offre acceptée (par le vendeur)
+    content = `
+      <div class="vinted-msg-offer accepted">
+        <div class="vinted-msg-offer-title">Offre acceptée</div>
+        <div class="vinted-msg-offer-price">${escapeHtml(message.entity.price_label || '')}</div>
+        ${message.entity.original_price_label ? `<div class="vinted-msg-offer-original">Prix original: ${escapeHtml(message.entity.original_price_label)}</div>` : ''}
+      </div>
+    `;
+  }
+  
+  // Ne pas afficher de message vide
+  if (!content) {
+    return '';
   }
   
   return `
     <div class="vinted-msg-item ${messageClass}">
       ${content}
-      <div class="vinted-msg-time">${timeAgo}</div>
+      <div class="vinted-msg-time">${escapeHtml(timeAgo)}</div>
     </div>
   `;
 }
@@ -1761,7 +2077,13 @@ async function toggleNotificationExpansion(notification, conversationId) {
         // Construire le HTML des messages
         const conversationUrl = conversation.conversation_url || `https://www.vinted.fr/inbox/${conversationId}`;
         const transaction = conversation.transaction || null;
-        const messagesHtml = conversation.messages.map(msg => formatMessage(msg, currentUserId, conversationUrl, transaction)).join('');
+        // Trier les messages par date (du plus ancien au plus récent)
+        const sortedMessages = [...(conversation.messages || [])].sort((a, b) => {
+          const dateA = a.created_at_ts ? new Date(a.created_at_ts).getTime() : 0;
+          const dateB = b.created_at_ts ? new Date(b.created_at_ts).getTime() : 0;
+          return dateA - dateB;
+        });
+        const messagesHtml = sortedMessages.map(msg => formatMessage(msg, currentUserId, conversationUrl, transaction)).join('');
         
         // Vérifier si une transaction existe pour afficher le bouton d'offre
         const hasTransaction = transaction && transaction.id;
