@@ -109,6 +109,13 @@ function createToggleButton() {
     createNotificationsWidget();
   }, 1500);
   
+  // Créer le bouton de paramètres
+  setTimeout(() => {
+    if (typeof createSettingsButton === 'function') {
+      createSettingsButton();
+    }
+  }, 2000);
+  
   console.log("[Vinted Monitor] Bouton toggle créé avec succès");
   toggleButtonRetries = 0;
   
@@ -161,13 +168,21 @@ function createMonitorUI() {
     setTimeout(() => {
       createSidebarTabs();
       // Charger les compteurs même si on n'est pas sur les onglets
+      // Ne pas appeler updateMessagesCountInTab() sans paramètre car cela ferait une requête
+      // Le compteur sera mis à jour par loadMessages quand les données seront disponibles
       setTimeout(() => {
-        updateMessagesCountInTab();
         updateOrdersCount();
         refreshWardrobeCount(); // Mettre à jour le compteur du wardrobe
       }, 1000);
     }, 500);
   }, 1500);
+  // Initialiser les intervalles depuis les settings
+  setTimeout(async () => {
+    if (typeof initIntervals === 'function') {
+      await initIntervals();
+    }
+  }, 500);
+  
   // Démarrer le monitor immédiatement pour charger les articles dès le lancement
   setTimeout(() => startMonitor(), 100);
   

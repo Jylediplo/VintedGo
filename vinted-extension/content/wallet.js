@@ -1,5 +1,46 @@
 // ==================== WALLET BALANCE ====================
+let cachedWalletInboxData = null;
+let cachedWalletInboxTime = 0;
+const WALLET_INBOX_CACHE_DURATION = 5000; // 5 secondes de cache
+
 async function getUserId() {
+  // Utiliser le cache si disponible et récent
+  const now = Date.now();
+  if (cachedWalletInboxData && (now - cachedWalletInboxTime) < WALLET_INBOX_CACHE_DURATION) {
+    const data = cachedWalletInboxData;
+    if (data.conversations && data.conversations.length > 0) {
+      // Utiliser les données en cache (même logique)
+      for (const conversation of data.conversations) {
+        try {
+          const convResponse = await fetch(`https://www.vinted.fr/api/v2/conversations/${conversation.id}`, {
+            credentials: 'include',
+            headers: {
+              'accept': 'application/json, text/plain, */*',
+              'accept-language': 'fr',
+            }
+          });
+          
+          if (convResponse.ok) {
+            const convData = await convResponse.json();
+            const fullConversation = convData.conversation || convData;
+            if (fullConversation.messages && fullConversation.messages.length > 0) {
+              const oppositeUserId = fullConversation.opposite_user?.id;
+              for (const msg of fullConversation.messages) {
+                if (msg.entity_type === 'message' && msg.entity?.user_id && msg.entity.user_id !== oppositeUserId) {
+                  const userId = String(msg.entity.user_id);
+                  console.log("[Wallet] User ID trouvé via cache inbox:", userId);
+                  return userId;
+                }
+              }
+            }
+          }
+        } catch (convError) {
+          continue;
+        }
+      }
+    }
+  }
+  
   try {
     const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
       credentials: 'include',
@@ -11,6 +52,10 @@ async function getUserId() {
 
     if (response.ok) {
       const data = await response.json();
+      // Mettre en cache
+      cachedWalletInboxData = data;
+      cachedWalletInboxTime = Date.now();
+      
       if (data.conversations && data.conversations.length > 0) {
         // Essayer toutes les conversations jusqu'à trouver une avec des messages
         for (const conversation of data.conversations) {

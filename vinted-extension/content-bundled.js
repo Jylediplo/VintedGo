@@ -14,12 +14,14 @@
   // ==================== CONFIG ====================
   const CONFIG = {
     DEFAULT_BRAND_ID: "362",
-    POLL_INTERVAL: 2000,
+    POLL_INTERVAL: 3000, // 3 secondes pour les items
     MAX_ITEMS: 200,
     STORAGE_KEY: "vinted_saved_filters",
     ALERTS_STORAGE_KEY: "vinted_alerts",
     DARK_MODE_KEY: "vinted_dark_mode",
     BUY_BUTTON_KEY: "vinted_buy_button_enabled",
+    MESSAGES_REFRESH_INTERVAL: 10000, // 10 secondes pour les messages
+    NOTIFICATIONS_REFRESH_INTERVAL: 10000, // 10 secondes pour les notifications
   };
   
   const state = {
@@ -244,7 +246,60 @@
   // ==========================================
   
   // ==================== WALLET BALANCE ====================
+  let cachedWalletInboxData = null;
+  let cachedWalletInboxTime = 0;
+  const WALLET_INBOX_CACHE_DURATION = 5000; // 5 secondes de cache
+  
   async function getUserId() {
+    // Utiliser le cache global si disponible (partagé avec offer.js)
+    if (window.cachedGlobalUserId) {
+      return window.cachedGlobalUserId;
+    }
+    
+    // Méthode 1: Essayer de récupérer depuis la page actuelle
+    try {
+      const scripts = document.querySelectorAll('script:not([src])');
+      for (const script of scripts) {
+        const content = script.textContent || '';
+        const patterns = [
+          /"user_id"\s*:\s*(\d+)/,
+          /"id"\s*:\s*(\d+).*"login"/,
+          /"current_user_id"\s*:\s*(\d+)/,
+          /userId["\s]*[:=]\s*["']?(\d+)/i,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = content.match(pattern);
+          if (match && match[1]) {
+            const userId = String(match[1]);
+            console.log("[Wallet] User ID trouvé depuis la page:", userId);
+            window.cachedGlobalUserId = userId;
+            return userId;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[Wallet] Erreur lors de l'extraction du userId depuis la page:", error);
+    }
+    
+    // Méthode 2: Essayer depuis les cookies
+    try {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'user_id' || name === 'userId') {
+          if (value) {
+            console.log("[Wallet] User ID trouvé depuis les cookies:", value);
+            window.cachedGlobalUserId = value;
+            return value;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[Wallet] Erreur lors de la récupération du userId depuis les cookies:", error);
+    }
+    
+    // Méthode 3: Utiliser l'inbox SANS charger les conversations individuelles
     try {
       const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
         credentials: 'include',
@@ -256,36 +311,18 @@
   
       if (response.ok) {
         const data = await response.json();
+        // Mettre en cache
+        cachedWalletInboxData = data;
+        cachedWalletInboxTime = Date.now();
+        
+        // Chercher le userId dans les données de l'inbox sans charger les conversations
         if (data.conversations && data.conversations.length > 0) {
-          // Essayer toutes les conversations jusqu'à trouver une avec des messages
           for (const conversation of data.conversations) {
-            // Si pas de messages dans la conversation, charger la conversation complète
-            try {
-              const convResponse = await fetch(`https://www.vinted.fr/api/v2/conversations/${conversation.id}`, {
-                credentials: 'include',
-                headers: {
-                  'accept': 'application/json, text/plain, */*',
-                  'accept-language': 'fr',
-                }
-              });
-              
-              if (convResponse.ok) {
-                const convData = await convResponse.json();
-                const fullConversation = convData.conversation || convData;
-                if (fullConversation.messages && fullConversation.messages.length > 0) {
-                  const oppositeUserId = fullConversation.opposite_user?.id;
-                  for (const msg of fullConversation.messages) {
-                    if (msg.entity_type === 'message' && msg.entity?.user_id && msg.entity.user_id !== oppositeUserId) {
-                      const userId = String(msg.entity.user_id);
-                      console.log("[Wallet] User ID trouvé via API inbox (conversation complète):", userId);
-                      return userId;
-                    }
-                  }
-                }
-              }
-            } catch (convError) {
-              // Continuer avec la conversation suivante
-              continue;
+            if (conversation.last_message && conversation.last_message.user_id) {
+              const userId = String(conversation.last_message.user_id);
+              console.log("[Wallet] User ID trouvé via inbox (last_message):", userId);
+              window.cachedGlobalUserId = userId;
+              return userId;
             }
           }
         }
@@ -294,7 +331,8 @@
       console.error("[Wallet] Erreur lors de la récupération via API inbox:", error);
     }
     
-    console.warn("[Wallet] User ID non trouvé");
+    // Dernier recours: NE PAS charger les conversations individuelles
+    console.warn("[Wallet] User ID non trouvé - les conversations individuelles ne seront PAS chargées");
     return null;
   }
   
@@ -371,6 +409,294 @@
     // pour éviter les appels en double
     return balance;
   }
+
+  // ==========================================
+  // settings.js
+  // ==========================================
+  
+  // ==================== SETTINGS MANAGER ====================
+  const SETTINGS_STORAGE_KEY = "vinted_refresh_intervals";
+  
+  // Valeurs par défaut
+  const DEFAULT_INTERVALS = {
+    messages: 10000,      // 10 secondes
+    notifications: 10000,  // 10 secondes
+    items: 3000           // 3 secondes
+  };
+  
+  // Charger les intervalles depuis le storage
+  async function loadIntervals() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([SETTINGS_STORAGE_KEY], (result) => {
+        const saved = result[SETTINGS_STORAGE_KEY];
+        resolve(saved || DEFAULT_INTERVALS);
+      });
+    });
+  }
+  
+  // Sauvegarder les intervalles
+  async function saveIntervals(intervals) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: intervals }, () => {
+        resolve();
+      });
+    });
+  }
+  
+  // Obtenir l'intervalle actuel pour un type
+  async function getInterval(type) {
+    const intervals = await loadIntervals();
+    return intervals[type] || DEFAULT_INTERVALS[type];
+  }
+  
+  // Créer le bouton de paramètres
+  function createSettingsButton() {
+    const walletDisplay = document.getElementById('vinted-wallet-balance');
+    if (!walletDisplay) {
+      setTimeout(createSettingsButton, 500);
+      return;
+    }
+  
+    // Vérifier si le bouton existe déjà
+    if (document.getElementById('vinted-settings-button')) {
+      return;
+    }
+  
+    const settingsButton = document.createElement('button');
+    settingsButton.id = 'vinted-settings-button';
+    settingsButton.className = 'vinted-settings-button';
+    settingsButton.innerHTML = `
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      </svg>
+    `;
+    settingsButton.title = 'Paramètres de rafraîchissement';
+    settingsButton.addEventListener('click', () => {
+      openSettingsModal();
+    });
+  
+    // Insérer après le wallet
+    const walletParent = walletDisplay.parentElement;
+    if (walletParent) {
+      walletParent.insertBefore(settingsButton, walletDisplay.nextSibling);
+    }
+  }
+  
+  // Ouvrir la modal de paramètres
+  async function openSettingsModal() {
+    // Vérifier si la modal existe déjà
+    const existingModal = document.getElementById('vinted-settings-modal');
+    if (existingModal) {
+      existingModal.style.display = 'flex';
+      return;
+    }
+  
+    const intervals = await loadIntervals();
+  
+    const modal = document.createElement('div');
+    modal.id = 'vinted-settings-modal';
+    modal.className = 'vinted-settings-modal';
+    modal.innerHTML = `
+      <div class="vinted-settings-container">
+        <div class="vinted-settings-header">
+          <h2>Paramètres de rafraîchissement</h2>
+          <button class="vinted-settings-close" aria-label="Fermer">×</button>
+        </div>
+        <div class="vinted-settings-content">
+          <div class="vinted-settings-section">
+            <label for="messages-interval">
+              <span class="settings-label">Messages</span>
+              <span class="settings-description">Intervalle de rafraîchissement des messages</span>
+            </label>
+            <div class="settings-input-group">
+              <input type="number" 
+                     id="messages-interval" 
+                     class="settings-interval-input" 
+                     min="1000" 
+                     step="1000" 
+                     value="${intervals.messages}">
+              <span class="settings-unit">ms</span>
+              <span class="settings-display">(${intervals.messages / 1000}s)</span>
+            </div>
+          </div>
+  
+          <div class="vinted-settings-section">
+            <label for="notifications-interval">
+              <span class="settings-label">Notifications</span>
+              <span class="settings-description">Intervalle de rafraîchissement des notifications</span>
+            </label>
+            <div class="settings-input-group">
+              <input type="number" 
+                     id="notifications-interval" 
+                     class="settings-interval-input" 
+                     min="1000" 
+                     step="1000" 
+                     value="${intervals.notifications}">
+              <span class="settings-unit">ms</span>
+              <span class="settings-display">(${intervals.notifications / 1000}s)</span>
+            </div>
+          </div>
+  
+          <div class="vinted-settings-section">
+            <label for="items-interval">
+              <span class="settings-label">Articles</span>
+              <span class="settings-description">Intervalle de rafraîchissement des articles</span>
+            </label>
+            <div class="settings-input-group">
+              <input type="number" 
+                     id="items-interval" 
+                     class="settings-interval-input" 
+                     min="1000" 
+                     step="1000" 
+                     value="${intervals.items}">
+              <span class="settings-unit">ms</span>
+              <span class="settings-display">(${intervals.items / 1000}s)</span>
+            </div>
+          </div>
+  
+          <div class="vinted-settings-actions">
+            <button class="settings-btn settings-btn-reset" id="settings-reset-btn">Réinitialiser</button>
+            <button class="settings-btn settings-btn-save" id="settings-save-btn">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    `;
+  
+    document.body.appendChild(modal);
+  
+    // Mettre à jour l'affichage en temps réel
+    const inputs = modal.querySelectorAll('.settings-interval-input');
+    inputs.forEach(input => {
+      input.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        const display = e.target.parentElement.querySelector('.settings-display');
+        if (display) {
+          display.textContent = `(${value / 1000}s)`;
+        }
+      });
+    });
+  
+    // Bouton de réinitialisation
+    const resetBtn = modal.querySelector('#settings-reset-btn');
+    resetBtn.addEventListener('click', () => {
+      document.getElementById('messages-interval').value = DEFAULT_INTERVALS.messages;
+      document.getElementById('notifications-interval').value = DEFAULT_INTERVALS.notifications;
+      document.getElementById('items-interval').value = DEFAULT_INTERVALS.items;
+      
+      // Mettre à jour les affichages
+      inputs.forEach(input => {
+        const value = parseInt(input.value);
+        const display = input.parentElement.querySelector('.settings-display');
+        if (display) {
+          display.textContent = `(${value / 1000}s)`;
+        }
+      });
+    });
+  
+    // Bouton de sauvegarde
+    const saveBtn = modal.querySelector('#settings-save-btn');
+    saveBtn.addEventListener('click', async () => {
+      const newIntervals = {
+        messages: parseInt(document.getElementById('messages-interval').value),
+        notifications: parseInt(document.getElementById('notifications-interval').value),
+        items: parseInt(document.getElementById('items-interval').value)
+      };
+  
+      // Validation
+      if (newIntervals.messages < 1000 || newIntervals.notifications < 1000 || newIntervals.items < 1000) {
+        alert('Les intervalles doivent être d\'au moins 1000ms (1 seconde)');
+        return;
+      }
+  
+      await saveIntervals(newIntervals);
+      
+      // Mettre à jour la config
+      if (typeof CONFIG !== 'undefined') {
+        CONFIG.MESSAGES_REFRESH_INTERVAL = newIntervals.messages;
+        CONFIG.NOTIFICATIONS_REFRESH_INTERVAL = newIntervals.notifications;
+        CONFIG.POLL_INTERVAL = newIntervals.items;
+      }
+  
+      // Redémarrer les intervalles avec les nouveaux timings
+      if (typeof startMessagesAutoRefresh === 'function' && typeof stopMessagesAutoRefresh === 'function') {
+        stopMessagesAutoRefresh();
+        setTimeout(async () => {
+          await startMessagesAutoRefresh();
+        }, 100);
+      }
+  
+      if (typeof refreshNotificationsWidget === 'function') {
+        if (typeof stopNotificationsWidgetRefresh === 'function') {
+          stopNotificationsWidgetRefresh();
+        }
+        setTimeout(() => {
+          if (typeof createNotificationsWidget === 'function') {
+            // Le widget redémarrera automatiquement son intervalle
+          }
+        }, 100);
+      }
+  
+      if (typeof stopMonitor === 'function' && typeof startMonitor === 'function' && state.isPolling) {
+        stopMonitor();
+        setTimeout(() => {
+          startMonitor();
+        }, 100);
+      }
+  
+      // Fermer la modal
+      closeSettingsModal();
+      
+      console.log('[Settings] Intervalles mis à jour:', newIntervals);
+    });
+  
+    // Fermer la modal
+    const closeBtn = modal.querySelector('.vinted-settings-close');
+    closeBtn.addEventListener('click', closeSettingsModal);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeSettingsModal();
+      }
+    });
+  
+    // Fermer avec Escape
+    const escapeHandler = (e) => {
+      if (e.key === 'Escape') {
+        closeSettingsModal();
+        document.removeEventListener('keydown', escapeHandler);
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
+  }
+  
+  function closeSettingsModal() {
+    const modal = document.getElementById('vinted-settings-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  // Initialiser les intervalles au chargement
+  async function initIntervals() {
+    const intervals = await loadIntervals();
+    
+    // Mettre à jour la config
+    if (typeof CONFIG !== 'undefined') {
+      CONFIG.MESSAGES_REFRESH_INTERVAL = intervals.messages;
+      CONFIG.NOTIFICATIONS_REFRESH_INTERVAL = intervals.notifications;
+      CONFIG.POLL_INTERVAL = intervals.items;
+    }
+  }
+  
+  // Exporter pour utilisation globale
+  if (typeof window !== 'undefined') {
+    window.getInterval = getInterval;
+    window.loadIntervals = loadIntervals;
+    window.saveIntervals = saveIntervals;
+  }
+  
+  
 
   // ==========================================
   // sidebarTabs.js
@@ -457,10 +783,23 @@
     refreshWardrobeCount(); // Mettre à jour le compteur du wardrobe
     
     // Observer les changements dans les listes pour mettre à jour les compteurs
-    const observer = new MutationObserver(() => {
-      updatePickupCount();
-      updateFiltersCount();
-      updateAlertsCount();
+    // Nettoyer l'observer existant s'il y en a un
+    if (window.pickupFiltersAlertsObserver) {
+      window.pickupFiltersAlertsObserver.disconnect();
+    }
+    
+    // Utiliser un debounce pour éviter les appels trop fréquents
+    let debounceTimer = null;
+    window.pickupFiltersAlertsObserver = new MutationObserver(() => {
+      // Debounce: attendre 1000ms avant de mettre à jour
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+      debounceTimer = setTimeout(() => {
+        updatePickupCount();
+        updateFiltersCount();
+        updateAlertsCount();
+      }, 1000);
     });
     
     // Observer les listes de filtres, alertes et points relais
@@ -470,13 +809,13 @@
       const pickupList = document.getElementById('pickup-points-list');
       
       if (filterList) {
-        observer.observe(filterList, { childList: true, subtree: true });
+        window.pickupFiltersAlertsObserver.observe(filterList, { childList: true, subtree: true });
       }
       if (alertList) {
-        observer.observe(alertList, { childList: true, subtree: true });
+        window.pickupFiltersAlertsObserver.observe(alertList, { childList: true, subtree: true });
       }
       if (pickupList) {
-        observer.observe(pickupList, { childList: true, subtree: true });
+        window.pickupFiltersAlertsObserver.observe(pickupList, { childList: true, subtree: true });
       }
     }, 2000);
     
@@ -521,9 +860,11 @@
       case 'messages':
         if (messagesContainer) messagesContainer.style.display = 'block';
         if (messagesListManager) messagesListManager.style.display = 'block';
-        // Démarrer le rafraîchissement automatique des messages toutes les 5 secondes
+        // Démarrer le rafraîchissement automatique des messages
         // (startMessagesAutoRefresh gère déjà l'arrêt d'un intervalle existant)
-        startMessagesAutoRefresh();
+        if (typeof startMessagesAutoRefresh === 'function') {
+          startMessagesAutoRefresh().catch(err => console.error('[Messages] Erreur:', err));
+        }
         break;
       case 'orders':
         // Arrêter le rafraîchissement automatique si on change d'onglet
@@ -553,38 +894,49 @@
     }
   }
   
-  async function updateMessagesCountInTab() {
+  let isUpdatingMessagesCount = false;
+  
+  async function updateMessagesCountInTab(conversations = null) {
     const messagesCountEl = document.getElementById('messages-count');
     if (!messagesCountEl) return;
   
+    // Éviter les appels multiples simultanés
+    if (isUpdatingMessagesCount && !conversations) {
+      return;
+    }
+    
+    isUpdatingMessagesCount = true;
+  
     try {
-      // Charger les messages pour compter les non lus
-      const data = await fetchInbox(1, 50);
-      if (data && data.conversations) {
-        const unreadCount = data.conversations.filter(conv => conv.unread === true).length;
-        if (unreadCount > 0) {
-          messagesCountEl.textContent = unreadCount;
-          messagesCountEl.style.display = 'inline-block';
-        } else {
-          messagesCountEl.textContent = '';
-          messagesCountEl.style.display = 'none';
-        }
+      let unreadCount = 0;
+      
+      if (conversations) {
+        // Utiliser les conversations déjà chargées
+        unreadCount = conversations.filter(conv => conv.unread === true).length;
       } else {
-        // Fallback sur le compteur du manager si disponible
+        // NE JAMAIS faire de fetchInbox ici si conversations est null
+        // Utiliser uniquement le fallback du compteur existant
         const vintedMessagesCount = document.getElementById('vinted-messages-count');
         if (vintedMessagesCount) {
           const text = vintedMessagesCount.textContent.trim();
           const match = text.match(/\((\d+)\)/);
           if (match) {
-            messagesCountEl.textContent = match[1];
-            messagesCountEl.style.display = 'inline-block';
-          } else {
-            messagesCountEl.style.display = 'none';
+            unreadCount = parseInt(match[1]);
           }
         }
       }
+      
+      if (unreadCount > 0) {
+        messagesCountEl.textContent = unreadCount;
+        messagesCountEl.style.display = 'inline-block';
+      } else {
+        messagesCountEl.textContent = '';
+        messagesCountEl.style.display = 'none';
+      }
     } catch (error) {
       console.error("[Messages Count] Erreur lors de la mise à jour du compteur:", error);
+    } finally {
+      isUpdatingMessagesCount = false;
     }
   }
   
@@ -617,22 +969,72 @@
   }
   
   // Observer pour mettre à jour le compteur de messages quand il change
+  let messagesCountObserver = null;
+  
   function observeMessagesCount() {
-    const observer = new MutationObserver(() => {
-      updateMessagesCountInTab();
-    });
-    
-    const messagesCountEl = document.getElementById('vinted-messages-count');
-    if (messagesCountEl) {
-      observer.observe(messagesCountEl, {
-        childList: true,
-        characterData: true,
-        subtree: true
-      });
+    // Nettoyer l'observer existant s'il y en a un
+    if (messagesCountObserver) {
+      messagesCountObserver.disconnect();
+      messagesCountObserver = null;
     }
     
-    // Mettre à jour immédiatement
-    setTimeout(updateMessagesCountInTab, 1000);
+    const messagesCountEl = document.getElementById('vinted-messages-count');
+    if (!messagesCountEl) {
+      // Réessayer après un délai
+      setTimeout(observeMessagesCount, 1000);
+      return;
+    }
+    
+    // Utiliser un debounce pour éviter les appels trop fréquents
+    let debounceTimer = null;
+    let lastUpdateTime = 0;
+    const MIN_UPDATE_INTERVAL = 5000; // Minimum 5 secondes entre les mises à jour
+    
+    messagesCountObserver = new MutationObserver(() => {
+      const now = Date.now();
+      // Ne pas mettre à jour si on a déjà mis à jour récemment
+      if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+        return;
+      }
+      
+      // Debounce: attendre 2000ms avant de mettre à jour
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+      debounceTimer = setTimeout(() => {
+        // Ne JAMAIS appeler fetchInbox depuis le MutationObserver
+        // Utiliser uniquement le fallback du compteur existant
+        const messagesCountEl = document.getElementById('messages-count');
+        if (messagesCountEl) {
+          // Essayer de récupérer le compteur depuis le DOM sans faire de requête
+          const vintedMessagesCount = document.getElementById('vinted-messages-count');
+          if (vintedMessagesCount) {
+            const text = vintedMessagesCount.textContent.trim();
+            const match = text.match(/\((\d+)\)/);
+            if (match) {
+              const unreadCount = parseInt(match[1]);
+              if (unreadCount > 0) {
+                messagesCountEl.textContent = unreadCount;
+                messagesCountEl.style.display = 'inline-block';
+              } else {
+                messagesCountEl.textContent = '';
+                messagesCountEl.style.display = 'none';
+              }
+              lastUpdateTime = Date.now();
+            }
+          }
+        }
+      }, 2000);
+    });
+    
+    messagesCountObserver.observe(messagesCountEl, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+    
+    // Ne pas mettre à jour immédiatement depuis ici
+    // La mise à jour sera faite par loadMessages quand les données seront disponibles
   }
   
   function updatePickupCount() {
@@ -1620,6 +2022,7 @@
   
   let notificationsWidgetInterval = null;
   let cachedNotificationsData = null;
+  let isNotificationsLoading = false;
   
   async function fetchNotificationsWidget(page = 1, perPage = 20) {
     try {
@@ -1753,6 +2156,14 @@
   }
   
   async function refreshNotificationsWidget() {
+    // Éviter les appels multiples simultanés
+    if (isNotificationsLoading) {
+      console.log("[Notifications] Chargement déjà en cours, skip");
+      return;
+    }
+    
+    isNotificationsLoading = true;
+    
     try {
       const notifications = await loadAllNotificationsWidget();
       if (notifications) {
@@ -1761,6 +2172,8 @@
       }
     } catch (error) {
       console.error("[Notifications Widget] Erreur lors du rafraîchissement:", error);
+    } finally {
+      isNotificationsLoading = false;
     }
   }
   
@@ -1883,13 +2296,37 @@
     // Charger les notifications initiales en arrière-plan
     refreshNotificationsWidget();
   
-    // Démarrer le rafraîchissement automatique toutes les 10 secondes
+    // Démarrer le rafraîchissement automatique selon l'intervalle configuré
     if (notificationsWidgetInterval) {
       clearInterval(notificationsWidgetInterval);
+      notificationsWidgetInterval = null;
     }
-    notificationsWidgetInterval = setInterval(() => {
-      refreshNotificationsWidget();
-    }, 10000); // 10 secondes
+    
+    // Obtenir l'intervalle depuis les settings ou la config
+    const getNotificationsInterval = async () => {
+      if (typeof getInterval === 'function') {
+        return await getInterval('notifications');
+      }
+      return CONFIG.NOTIFICATIONS_REFRESH_INTERVAL || 10000;
+    };
+    
+    getNotificationsInterval().then(interval => {
+      // S'assurer qu'on ne crée pas plusieurs intervalles
+      if (notificationsWidgetInterval) {
+        clearInterval(notificationsWidgetInterval);
+      }
+      
+      notificationsWidgetInterval = setInterval(() => {
+        // Éviter les appels multiples si une requête est déjà en cours
+        if (isNotificationsLoading) {
+          console.log("[Notifications] Requête en cours, skip du rafraîchissement");
+          return;
+        }
+        refreshNotificationsWidget();
+      }, interval);
+      
+      console.log(`[Notifications] ✅ Rafraîchissement automatique activé (toutes les ${interval / 1000} secondes)`);
+    });
   
     console.log("[Notifications Widget] Widget créé avec succès");
   }
@@ -2558,19 +2995,8 @@
     
     messagesList.innerHTML = messagesHtml;
     
-    // Ajouter les gestionnaires de clic sur les conversations
-    messagesList.querySelectorAll('.message-item').forEach(item => {
-      const conversationId = item.dataset.conversationId;
-      if (conversationId) {
-        item.addEventListener('click', (e) => {
-          // Ne pas ouvrir si on clique sur le lien externe
-          if (e.target.closest('.message-link')) {
-            return;
-          }
-          openConversationModal(conversationId);
-        });
-      }
-    });
+    // Utiliser la délégation d'événements pour éviter d'ajouter des listeners à chaque rendu
+    // Le listener est déjà attaché dans createMessagesListManager
   }
   
   let currentMessagesFilter = 'all';
@@ -2578,6 +3004,14 @@
   let messagesRefreshInterval = null;
   
   async function loadMessages(readFilter = 'all', page = 1) {
+    // Éviter les appels multiples simultanés
+    if (isMessagesLoading) {
+      console.log("[Vinted Messages] Chargement déjà en cours, skip");
+      return;
+    }
+    
+    isMessagesLoading = true;
+    
     const messagesContainer = document.getElementById('vinted-messages-list');
     if (messagesContainer) {
       // Ne pas afficher "Chargement..." si c'est un rafraîchissement automatique
@@ -2609,8 +3043,8 @@
         // Mettre à jour les boutons de filtre avec les compteurs
         updateMessagesFilterButtons(readFilter, data.conversations);
         
-        // Mettre à jour le compteur dans l'onglet
-        updateMessagesCountInTab();
+        // Mettre à jour le compteur dans l'onglet avec les données déjà chargées
+        updateMessagesCountInTab(data.conversations);
       } else {
         if (messagesContainer) {
           messagesContainer.innerHTML = '<p class="messages-empty">Erreur lors du chargement des messages</p>';
@@ -2623,28 +3057,64 @@
       if (messagesContainer) {
         messagesContainer.innerHTML = '<p class="messages-empty">Erreur lors du chargement des messages</p>';
       }
+    } finally {
+      isMessagesLoading = false;
     }
   }
   
   /**
    * Démarre le rafraîchissement automatique des messages toutes les 5 secondes
    */
-  function startMessagesAutoRefresh() {
+  let isMessagesLoading = false;
+  
+  let isMessagesAutoRefreshStarting = false;
+  
+  async function startMessagesAutoRefresh() {
+    // Éviter les appels multiples simultanés
+    if (isMessagesAutoRefreshStarting) {
+      console.log("[Vinted Messages] Démarrage déjà en cours, skip");
+      return;
+    }
+    
     // Arrêter l'intervalle existant s'il y en a un
     stopMessagesAutoRefresh();
+    
+    isMessagesAutoRefreshStarting = true;
     
     // Rafraîchir immédiatement
     loadMessages(currentMessagesFilter, currentMessagesPage);
     
-    // Puis rafraîchir toutes les 5 secondes
-    messagesRefreshInterval = setInterval(() => {
+    // Obtenir l'intervalle depuis les settings ou la config
+    const getMessagesInterval = async () => {
+      if (typeof getInterval === 'function') {
+        return await getInterval('messages');
+      }
+      return CONFIG.MESSAGES_REFRESH_INTERVAL || 10000;
+    };
+    
+    const interval = await getMessagesInterval();
+    
+    // S'assurer qu'on ne crée pas plusieurs intervalles
+    if (messagesRefreshInterval) {
+      clearInterval(messagesRefreshInterval);
+      messagesRefreshInterval = null;
+    }
+    
+    // Puis rafraîchir selon l'intervalle configuré
+    messagesRefreshInterval = setInterval(async () => {
+      // Éviter les appels multiples si une requête est déjà en cours
+      if (isMessagesLoading) {
+        console.log("[Vinted Messages] Requête en cours, skip du rafraîchissement");
+        return;
+      }
+      
       console.log("[Vinted Messages] Rafraîchissement automatique de la liste des messages");
       loadMessages(currentMessagesFilter, currentMessagesPage);
-      // Mettre à jour le compteur même si on n'est pas sur l'onglet messages
-      updateMessagesCountInTab();
-    }, 5000);
+      // Le compteur sera mis à jour par loadMessages avec les données déjà chargées
+    }, interval);
     
-    console.log("[Vinted Messages] ✅ Rafraîchissement automatique activé (toutes les 5 secondes)");
+    console.log(`[Vinted Messages] ✅ Rafraîchissement automatique activé (toutes les ${interval / 1000} secondes)`);
+    isMessagesAutoRefreshStarting = false;
   }
   
   /**
@@ -2695,7 +3165,15 @@
   let messagesListManagerRetries = 0;
   const MAX_MESSAGES_RETRIES = 10;
   
+  let isCreatingMessagesManager = false;
+  
   function createMessagesListManager() {
+    // Éviter les appels multiples simultanés
+    if (isCreatingMessagesManager) {
+      console.log("[Messages] Création déjà en cours, skip");
+      return;
+    }
+    
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) {
       messagesListManagerRetries++;
@@ -2706,8 +3184,11 @@
     }
   
     if (document.getElementById('vinted-messages-list-manager')) {
+      console.log("[Messages] Manager déjà créé, skip");
       return; // Déjà créé
     }
+    
+    isCreatingMessagesManager = true;
   
     const messagesManager = document.createElement('div');
     messagesManager.id = 'vinted-messages-list-manager';
@@ -2752,25 +3233,47 @@
       sidebar.insertBefore(messagesManager, sidebar.firstChild);
     }
   
-    // Boutons de filtre
-    const filterButtons = messagesManager.querySelectorAll('.message-filter-btn');
-    filterButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const filter = btn.dataset.filter;
+    // Boutons de filtre - utiliser la délégation d'événements
+    messagesManager.addEventListener('click', (e) => {
+      const filterBtn = e.target.closest('.message-filter-btn');
+      if (filterBtn) {
+        const filter = filterBtn.dataset.filter;
         loadMessages(filter, 1);
-      });
+      }
     });
+    
+    // Délégation d'événements pour les clics sur les conversations
+    const messagesList = messagesManager.querySelector('#vinted-messages-list');
+    if (messagesList) {
+      messagesList.addEventListener('click', (e) => {
+        const messageItem = e.target.closest('.message-item');
+        if (!messageItem) return;
+        
+        // Ne pas ouvrir si on clique sur le lien externe
+        if (e.target.closest('.message-link')) {
+          return;
+        }
+        
+        const conversationId = messageItem.dataset.conversationId;
+        if (conversationId) {
+          openConversationModal(conversationId);
+        }
+      });
+    }
   
     // Charger les messages initiaux et démarrer le rafraîchissement automatique
     loadMessages('all', 1);
     
     // Démarrer le rafraîchissement automatique immédiatement (l'onglet messages est actif par défaut)
-    setTimeout(() => {
-      startMessagesAutoRefresh();
+    setTimeout(async () => {
+      if (typeof startMessagesAutoRefresh === 'function') {
+        await startMessagesAutoRefresh();
+      }
     }, 500);
     
     console.log("[Messages List Manager] Interface créée avec succès");
     messagesListManagerRetries = 0;
+    isCreatingMessagesManager = false;
   }
   
   // Injecter les styles pour la modal de conversation si nécessaire
@@ -3821,12 +4324,65 @@
   // ==========================================
   
   // ==================== OFFER OPTIONS ====================
+  let cachedInboxData = null;
+  let cachedInboxTime = 0;
+  const INBOX_CACHE_DURATION = 5000; // 5 secondes de cache
   
   /**
    * Récupère l'ID de l'utilisateur connecté
    * @returns {Promise<string|null>} - User ID ou null
    */
   async function getUserId() {
+    // Utiliser le cache si disponible
+    if (cachedUserId) {
+      return cachedUserId;
+    }
+    
+    // Méthode 1: Essayer de récupérer depuis la page actuelle
+    try {
+      const scripts = document.querySelectorAll('script:not([src])');
+      for (const script of scripts) {
+        const content = script.textContent || '';
+        const patterns = [
+          /"user_id"\s*:\s*(\d+)/,
+          /"id"\s*:\s*(\d+).*"login"/,
+          /"current_user_id"\s*:\s*(\d+)/,
+          /userId["\s]*[:=]\s*["']?(\d+)/i,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = content.match(pattern);
+          if (match && match[1]) {
+            const userId = String(match[1]);
+            console.log("[Offer] User ID trouvé depuis la page:", userId);
+            cachedUserId = userId;
+            return userId;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[Offer] Erreur lors de l'extraction du userId depuis la page:", error);
+    }
+    
+    // Méthode 2: Essayer depuis les cookies
+    try {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'user_id' || name === 'userId') {
+          if (value) {
+            console.log("[Offer] User ID trouvé depuis les cookies:", value);
+            cachedUserId = value;
+            return value;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[Offer] Erreur lors de la récupération du userId depuis les cookies:", error);
+    }
+    
+    // Méthode 3: Utiliser l'inbox SANS charger les conversations individuelles
+    // On essaie de trouver le userId dans les données de l'inbox directement
     try {
       const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
         credentials: 'include',
@@ -3838,36 +4394,20 @@
   
       if (response.ok) {
         const data = await response.json();
+        // Mettre en cache
+        cachedInboxData = data;
+        cachedInboxTime = Date.now();
+        
+        // Chercher le userId dans les données de l'inbox sans charger les conversations
+        // L'inbox peut contenir des informations sur le dernier message
         if (data.conversations && data.conversations.length > 0) {
-          // Essayer toutes les conversations jusqu'à trouver une avec des messages
           for (const conversation of data.conversations) {
-            // Si pas de messages dans la conversation, charger la conversation complète
-            try {
-              const convResponse = await fetch(`https://www.vinted.fr/api/v2/conversations/${conversation.id}`, {
-                credentials: 'include',
-                headers: {
-                  'accept': 'application/json, text/plain, */*',
-                  'accept-language': 'fr',
-                }
-              });
-              
-              if (convResponse.ok) {
-                const convData = await convResponse.json();
-                const fullConversation = convData.conversation || convData;
-                if (fullConversation.messages && fullConversation.messages.length > 0) {
-                  const oppositeUserId = fullConversation.opposite_user?.id;
-                  for (const msg of fullConversation.messages) {
-                    if (msg.entity_type === 'message' && msg.entity?.user_id && msg.entity.user_id !== oppositeUserId) {
-                      const userId = String(msg.entity.user_id);
-                      console.log("[Offer] User ID trouvé via API inbox (conversation complète):", userId);
-                      return userId;
-                    }
-                  }
-                }
-              }
-            } catch (convError) {
-              // Continuer avec la conversation suivante
-              continue;
+            // Vérifier si on a des informations sur le dernier message
+            if (conversation.last_message && conversation.last_message.user_id) {
+              const userId = String(conversation.last_message.user_id);
+              console.log("[Offer] User ID trouvé via inbox (last_message):", userId);
+              cachedUserId = userId;
+              return userId;
             }
           }
         }
@@ -3876,13 +4416,20 @@
       console.error("[Offer] Erreur lors de la récupération via API inbox:", error);
     }
     
-    console.warn("[Offer] User ID non trouvé");
+    // Dernier recours: NE PAS charger les conversations individuelles
+    // On retourne null et on laisse l'utilisateur gérer
+    console.warn("[Offer] User ID non trouvé - les conversations individuelles ne seront PAS chargées");
     return null;
   }
   
   // Cache pour le seller_id et le userId pour éviter les requêtes répétées
   let cachedSellerId = null;
   let cachedUserId = null;
+  
+  // Partager le cache du userId avec wallet.js
+  if (!window.cachedGlobalUserId && cachedUserId) {
+    window.cachedGlobalUserId = cachedUserId;
+  }
   
   /**
    * Récupère un seller_id depuis la page actuelle ou depuis les conversations
@@ -3926,7 +4473,25 @@
       console.warn("[Offer] Erreur lors de l'extraction du seller_id depuis la page:", error);
     }
   
-    // Méthode 2: Récupérer depuis les conversations (opposite_user) - plus rapide, une seule requête
+    // Méthode 2: Récupérer depuis les conversations (opposite_user) - utiliser le cache si disponible
+    const now = Date.now();
+    if (cachedInboxData && (now - cachedInboxTime) < INBOX_CACHE_DURATION) {
+      const data = cachedInboxData;
+      if (data.conversations && data.conversations.length > 0) {
+        // Prendre le premier opposite_user qui n'est pas nous
+        for (const conversation of data.conversations) {
+          if (conversation.opposite_user && conversation.opposite_user.id) {
+            const oppositeUserId = parseInt(conversation.opposite_user.id);
+            if (cachedUserId && oppositeUserId !== parseInt(cachedUserId)) {
+              cachedSellerId = oppositeUserId;
+              console.log("[Offer] Seller ID trouvé via cache inbox (opposite_user):", cachedSellerId);
+              return cachedSellerId;
+            }
+          }
+        }
+      }
+    }
+    
     try {
       const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
         credentials: 'include',
@@ -3938,6 +4503,10 @@
   
       if (response.ok) {
         const data = await response.json();
+        // Mettre en cache
+        cachedInboxData = data;
+        cachedInboxTime = Date.now();
+        
         if (data.conversations && data.conversations.length > 0) {
           // Prendre le premier opposite_user qui n'est pas nous
           for (const conversation of data.conversations) {
@@ -4615,6 +5184,8 @@
   // ==========================================
   
   // ==================== MONITOR ====================
+  let isPollingItems = false;
+  
   function startMonitor() {
     if (state.isPolling) return;
   
@@ -4626,7 +5197,38 @@
     }
   
     pollItems();
-    state.pollInterval = setInterval(pollItems, CONFIG.POLL_INTERVAL);
+    
+    // S'assurer qu'on ne crée pas plusieurs intervalles
+    if (state.pollInterval) {
+      clearInterval(state.pollInterval);
+      state.pollInterval = null;
+    }
+    
+    // Obtenir l'intervalle depuis les settings ou la config
+    const getItemsInterval = async () => {
+      if (typeof getInterval === 'function') {
+        return await getInterval('items');
+      }
+      return CONFIG.POLL_INTERVAL || 3000;
+    };
+    
+    getItemsInterval().then(interval => {
+      // Double vérification
+      if (state.pollInterval) {
+        clearInterval(state.pollInterval);
+      }
+      
+      state.pollInterval = setInterval(() => {
+        // Éviter les appels multiples si une requête est déjà en cours
+        if (isPollingItems) {
+          console.log("[Vinted Monitor] Requête en cours, skip du polling");
+          return;
+        }
+        pollItems();
+      }, interval);
+      
+      console.log(`[Vinted Monitor] ✅ Polling activé (toutes les ${interval / 1000} secondes)`);
+    });
   }
   
   function stopMonitor() {
@@ -4652,6 +5254,13 @@
   }
   
   async function pollItems() {
+    // Éviter les appels multiples simultanés
+    if (isPollingItems) {
+      console.log("[Vinted Monitor] Polling déjà en cours, skip");
+      return;
+    }
+    
+    isPollingItems = true;
     const isFirstFetch = state.items.length === 0;
   
     try {
@@ -4672,6 +5281,8 @@
       }
     } catch (error) {
       console.error("[Vinted Monitor] Erreur:", error);
+    } finally {
+      isPollingItems = false;
     }
   }
   
@@ -5824,6 +6435,13 @@
       createNotificationsWidget();
     }, 1500);
     
+    // Créer le bouton de paramètres
+    setTimeout(() => {
+      if (typeof createSettingsButton === 'function') {
+        createSettingsButton();
+      }
+    }, 2000);
+    
     console.log("[Vinted Monitor] Bouton toggle créé avec succès");
     toggleButtonRetries = 0;
     
@@ -5876,13 +6494,21 @@
       setTimeout(() => {
         createSidebarTabs();
         // Charger les compteurs même si on n'est pas sur les onglets
+        // Ne pas appeler updateMessagesCountInTab() sans paramètre car cela ferait une requête
+        // Le compteur sera mis à jour par loadMessages quand les données seront disponibles
         setTimeout(() => {
-          updateMessagesCountInTab();
           updateOrdersCount();
           refreshWardrobeCount(); // Mettre à jour le compteur du wardrobe
         }, 1000);
       }, 500);
     }, 1500);
+    // Initialiser les intervalles depuis les settings
+    setTimeout(async () => {
+      if (typeof initIntervals === 'function') {
+        await initIntervals();
+      }
+    }, 500);
+    
     // Démarrer le monitor immédiatement pour charger les articles dès le lancement
     setTimeout(() => startMonitor(), 100);
     

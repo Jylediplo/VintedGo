@@ -2110,6 +2110,272 @@ main#catalog,
   border-color: #334155 !important;
 }
 
+/* ==================== SETTINGS BUTTON ==================== */
+.vinted-settings-button {
+  padding: 8px 12px;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.vinted-settings-button:hover {
+  opacity: 0.8;
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.vinted-settings-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+.vinted-dark-mode .vinted-settings-button {
+  background: transparent !important;
+  color: #9ca3af !important;
+  border: 1px solid #1e293b !important;
+}
+
+.vinted-dark-mode .vinted-settings-button:hover {
+  opacity: 0.8 !important;
+  border-color: #334155 !important;
+  background: #1e293b !important;
+}
+
+/* ==================== SETTINGS MODAL ==================== */
+.vinted-settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.vinted-settings-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.vinted-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.vinted-settings-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.vinted-settings-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.vinted-settings-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.vinted-settings-content {
+  padding: 1.5rem;
+}
+
+.vinted-settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.vinted-settings-section label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.settings-label {
+  display: block;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.settings-description {
+  display: block;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.settings-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-interval-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.settings-interval-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.settings-unit {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+  min-width: 30px;
+}
+
+.settings-display {
+  font-size: 0.875rem;
+  color: #3b82f6;
+  font-weight: 600;
+  min-width: 50px;
+}
+
+.vinted-settings-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.settings-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-btn-reset {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.settings-btn-reset:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.settings-btn-save {
+  background: #3b82f6;
+  color: white;
+}
+
+.settings-btn-save:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Mode sombre pour la modal de settings */
+.vinted-dark-mode .vinted-settings-container {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.vinted-dark-mode .vinted-settings-header {
+  border-bottom-color: #1e293b !important;
+}
+
+.vinted-dark-mode .vinted-settings-header h2 {
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .vinted-settings-close {
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .vinted-settings-close:hover {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .settings-label {
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .settings-description {
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .settings-interval-input {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.vinted-dark-mode .settings-interval-input:focus {
+  border-color: #3b82f6 !important;
+}
+
+.vinted-dark-mode .settings-unit {
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .vinted-settings-actions {
+  border-top-color: #1e293b !important;
+}
+
+.vinted-dark-mode .settings-btn-reset {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.vinted-dark-mode .settings-btn-reset:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
 /* ==================== NOTIFICATIONS WIDGET ==================== */
 
 .vinted-notifications-icon {

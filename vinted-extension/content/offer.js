@@ -1,10 +1,51 @@
 // ==================== OFFER OPTIONS ====================
+let cachedInboxData = null;
+let cachedInboxTime = 0;
+const INBOX_CACHE_DURATION = 5000; // 5 secondes de cache
 
 /**
  * Récupère l'ID de l'utilisateur connecté
  * @returns {Promise<string|null>} - User ID ou null
  */
 async function getUserId() {
+  // Utiliser le cache si disponible et récent
+  const now = Date.now();
+  if (cachedInboxData && (now - cachedInboxTime) < INBOX_CACHE_DURATION) {
+    const data = cachedInboxData;
+    if (data.conversations && data.conversations.length > 0) {
+      // Utiliser les données en cache
+      for (const conversation of data.conversations) {
+        try {
+          const convResponse = await fetch(`https://www.vinted.fr/api/v2/conversations/${conversation.id}`, {
+            credentials: 'include',
+            headers: {
+              'accept': 'application/json, text/plain, */*',
+              'accept-language': 'fr',
+            }
+          });
+          
+          if (convResponse.ok) {
+            const convData = await convResponse.json();
+            const fullConversation = convData.conversation || convData;
+            if (fullConversation.messages && fullConversation.messages.length > 0) {
+              const oppositeUserId = fullConversation.opposite_user?.id;
+              for (const msg of fullConversation.messages) {
+                if (msg.entity_type === 'message' && msg.entity?.user_id && msg.entity.user_id !== oppositeUserId) {
+                  const userId = String(msg.entity.user_id);
+                  console.log("[Offer] User ID trouvé via API inbox (conversation complète):", userId);
+                  cachedUserId = userId;
+                  return userId;
+                }
+              }
+            }
+          }
+        } catch (convError) {
+          continue;
+        }
+      }
+    }
+  }
+  
   try {
     const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
       credentials: 'include',
@@ -16,6 +57,10 @@ async function getUserId() {
 
     if (response.ok) {
       const data = await response.json();
+      // Mettre en cache
+      cachedInboxData = data;
+      cachedInboxTime = Date.now();
+      
       if (data.conversations && data.conversations.length > 0) {
         // Essayer toutes les conversations jusqu'à trouver une avec des messages
         for (const conversation of data.conversations) {
@@ -38,6 +83,7 @@ async function getUserId() {
                   if (msg.entity_type === 'message' && msg.entity?.user_id && msg.entity.user_id !== oppositeUserId) {
                     const userId = String(msg.entity.user_id);
                     console.log("[Offer] User ID trouvé via API inbox (conversation complète):", userId);
+                    cachedUserId = userId;
                     return userId;
                   }
                 }
@@ -104,7 +150,25 @@ async function getSellerIdForOfferOptions() {
     console.warn("[Offer] Erreur lors de l'extraction du seller_id depuis la page:", error);
   }
 
-  // Méthode 2: Récupérer depuis les conversations (opposite_user) - plus rapide, une seule requête
+  // Méthode 2: Récupérer depuis les conversations (opposite_user) - utiliser le cache si disponible
+  const now = Date.now();
+  if (cachedInboxData && (now - cachedInboxTime) < INBOX_CACHE_DURATION) {
+    const data = cachedInboxData;
+    if (data.conversations && data.conversations.length > 0) {
+      // Prendre le premier opposite_user qui n'est pas nous
+      for (const conversation of data.conversations) {
+        if (conversation.opposite_user && conversation.opposite_user.id) {
+          const oppositeUserId = parseInt(conversation.opposite_user.id);
+          if (cachedUserId && oppositeUserId !== parseInt(cachedUserId)) {
+            cachedSellerId = oppositeUserId;
+            console.log("[Offer] Seller ID trouvé via cache inbox (opposite_user):", cachedSellerId);
+            return cachedSellerId;
+          }
+        }
+      }
+    }
+  }
+  
   try {
     const response = await fetch('https://www.vinted.fr/api/v2/inbox?page=1&per_page=20', {
       credentials: 'include',
@@ -116,6 +180,10 @@ async function getSellerIdForOfferOptions() {
 
     if (response.ok) {
       const data = await response.json();
+      // Mettre en cache
+      cachedInboxData = data;
+      cachedInboxTime = Date.now();
+      
       if (data.conversations && data.conversations.length > 0) {
         // Prendre le premier opposite_user qui n'est pas nous
         for (const conversation of data.conversations) {

@@ -651,19 +651,8 @@ function renderMessagesList(conversations, readFilter) {
   
   messagesList.innerHTML = messagesHtml;
   
-  // Ajouter les gestionnaires de clic sur les conversations
-  messagesList.querySelectorAll('.message-item').forEach(item => {
-    const conversationId = item.dataset.conversationId;
-    if (conversationId) {
-      item.addEventListener('click', (e) => {
-        // Ne pas ouvrir si on clique sur le lien externe
-        if (e.target.closest('.message-link')) {
-          return;
-        }
-        openConversationModal(conversationId);
-      });
-    }
-  });
+  // Utiliser la délégation d'événements pour éviter d'ajouter des listeners à chaque rendu
+  // Le listener est déjà attaché dans createMessagesListManager
 }
 
 let currentMessagesFilter = 'all';
@@ -671,6 +660,14 @@ let currentMessagesPage = 1;
 let messagesRefreshInterval = null;
 
 async function loadMessages(readFilter = 'all', page = 1) {
+  // Éviter les appels multiples simultanés
+  if (isMessagesLoading) {
+    console.log("[Vinted Messages] Chargement déjà en cours, skip");
+    return;
+  }
+  
+  isMessagesLoading = true;
+  
   const messagesContainer = document.getElementById('vinted-messages-list');
   if (messagesContainer) {
     // Ne pas afficher "Chargement..." si c'est un rafraîchissement automatique
@@ -702,8 +699,8 @@ async function loadMessages(readFilter = 'all', page = 1) {
       // Mettre à jour les boutons de filtre avec les compteurs
       updateMessagesFilterButtons(readFilter, data.conversations);
       
-      // Mettre à jour le compteur dans l'onglet
-      updateMessagesCountInTab();
+      // Mettre à jour le compteur dans l'onglet avec les données déjà chargées
+      updateMessagesCountInTab(data.conversations);
     } else {
       if (messagesContainer) {
         messagesContainer.innerHTML = '<p class="messages-empty">Erreur lors du chargement des messages</p>';
@@ -716,28 +713,64 @@ async function loadMessages(readFilter = 'all', page = 1) {
     if (messagesContainer) {
       messagesContainer.innerHTML = '<p class="messages-empty">Erreur lors du chargement des messages</p>';
     }
+  } finally {
+    isMessagesLoading = false;
   }
 }
 
 /**
  * Démarre le rafraîchissement automatique des messages toutes les 5 secondes
  */
-function startMessagesAutoRefresh() {
+let isMessagesLoading = false;
+
+let isMessagesAutoRefreshStarting = false;
+
+async function startMessagesAutoRefresh() {
+  // Éviter les appels multiples simultanés
+  if (isMessagesAutoRefreshStarting) {
+    console.log("[Vinted Messages] Démarrage déjà en cours, skip");
+    return;
+  }
+  
   // Arrêter l'intervalle existant s'il y en a un
   stopMessagesAutoRefresh();
+  
+  isMessagesAutoRefreshStarting = true;
   
   // Rafraîchir immédiatement
   loadMessages(currentMessagesFilter, currentMessagesPage);
   
-  // Puis rafraîchir toutes les 5 secondes
-  messagesRefreshInterval = setInterval(() => {
+  // Obtenir l'intervalle depuis les settings ou la config
+  const getMessagesInterval = async () => {
+    if (typeof getInterval === 'function') {
+      return await getInterval('messages');
+    }
+    return CONFIG.MESSAGES_REFRESH_INTERVAL || 10000;
+  };
+  
+  const interval = await getMessagesInterval();
+  
+  // S'assurer qu'on ne crée pas plusieurs intervalles
+  if (messagesRefreshInterval) {
+    clearInterval(messagesRefreshInterval);
+    messagesRefreshInterval = null;
+  }
+  
+  // Puis rafraîchir selon l'intervalle configuré
+  messagesRefreshInterval = setInterval(async () => {
+    // Éviter les appels multiples si une requête est déjà en cours
+    if (isMessagesLoading) {
+      console.log("[Vinted Messages] Requête en cours, skip du rafraîchissement");
+      return;
+    }
+    
     console.log("[Vinted Messages] Rafraîchissement automatique de la liste des messages");
     loadMessages(currentMessagesFilter, currentMessagesPage);
-    // Mettre à jour le compteur même si on n'est pas sur l'onglet messages
-    updateMessagesCountInTab();
-  }, 5000);
+    // Le compteur sera mis à jour par loadMessages avec les données déjà chargées
+  }, interval);
   
-  console.log("[Vinted Messages] ✅ Rafraîchissement automatique activé (toutes les 5 secondes)");
+  console.log(`[Vinted Messages] ✅ Rafraîchissement automatique activé (toutes les ${interval / 1000} secondes)`);
+  isMessagesAutoRefreshStarting = false;
 }
 
 /**
@@ -788,7 +821,15 @@ function updateMessagesFilterButtons(activeFilter, conversations = null) {
 let messagesListManagerRetries = 0;
 const MAX_MESSAGES_RETRIES = 10;
 
+let isCreatingMessagesManager = false;
+
 function createMessagesListManager() {
+  // Éviter les appels multiples simultanés
+  if (isCreatingMessagesManager) {
+    console.log("[Messages] Création déjà en cours, skip");
+    return;
+  }
+  
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) {
     messagesListManagerRetries++;
@@ -799,8 +840,11 @@ function createMessagesListManager() {
   }
 
   if (document.getElementById('vinted-messages-list-manager')) {
+    console.log("[Messages] Manager déjà créé, skip");
     return; // Déjà créé
   }
+  
+  isCreatingMessagesManager = true;
 
   const messagesManager = document.createElement('div');
   messagesManager.id = 'vinted-messages-list-manager';
@@ -845,25 +889,47 @@ function createMessagesListManager() {
     sidebar.insertBefore(messagesManager, sidebar.firstChild);
   }
 
-  // Boutons de filtre
-  const filterButtons = messagesManager.querySelectorAll('.message-filter-btn');
-  filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const filter = btn.dataset.filter;
+  // Boutons de filtre - utiliser la délégation d'événements
+  messagesManager.addEventListener('click', (e) => {
+    const filterBtn = e.target.closest('.message-filter-btn');
+    if (filterBtn) {
+      const filter = filterBtn.dataset.filter;
       loadMessages(filter, 1);
-    });
+    }
   });
+  
+  // Délégation d'événements pour les clics sur les conversations
+  const messagesList = messagesManager.querySelector('#vinted-messages-list');
+  if (messagesList) {
+    messagesList.addEventListener('click', (e) => {
+      const messageItem = e.target.closest('.message-item');
+      if (!messageItem) return;
+      
+      // Ne pas ouvrir si on clique sur le lien externe
+      if (e.target.closest('.message-link')) {
+        return;
+      }
+      
+      const conversationId = messageItem.dataset.conversationId;
+      if (conversationId) {
+        openConversationModal(conversationId);
+      }
+    });
+  }
 
   // Charger les messages initiaux et démarrer le rafraîchissement automatique
   loadMessages('all', 1);
   
   // Démarrer le rafraîchissement automatique immédiatement (l'onglet messages est actif par défaut)
-  setTimeout(() => {
-    startMessagesAutoRefresh();
+  setTimeout(async () => {
+    if (typeof startMessagesAutoRefresh === 'function') {
+      await startMessagesAutoRefresh();
+    }
   }, 500);
   
   console.log("[Messages List Manager] Interface créée avec succès");
   messagesListManagerRetries = 0;
+  isCreatingMessagesManager = false;
 }
 
 // Injecter les styles pour la modal de conversation si nécessaire

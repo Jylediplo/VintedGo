@@ -3,6 +3,7 @@
 
 let notificationsWidgetInterval = null;
 let cachedNotificationsData = null;
+let isNotificationsLoading = false;
 
 async function fetchNotificationsWidget(page = 1, perPage = 20) {
   try {
@@ -136,6 +137,14 @@ function renderNotificationsWidget(notifications) {
 }
 
 async function refreshNotificationsWidget() {
+  // Éviter les appels multiples simultanés
+  if (isNotificationsLoading) {
+    console.log("[Notifications] Chargement déjà en cours, skip");
+    return;
+  }
+  
+  isNotificationsLoading = true;
+  
   try {
     const notifications = await loadAllNotificationsWidget();
     if (notifications) {
@@ -144,6 +153,8 @@ async function refreshNotificationsWidget() {
     }
   } catch (error) {
     console.error("[Notifications Widget] Erreur lors du rafraîchissement:", error);
+  } finally {
+    isNotificationsLoading = false;
   }
 }
 
@@ -266,13 +277,37 @@ function createNotificationsWidget() {
   // Charger les notifications initiales en arrière-plan
   refreshNotificationsWidget();
 
-  // Démarrer le rafraîchissement automatique toutes les 10 secondes
+  // Démarrer le rafraîchissement automatique selon l'intervalle configuré
   if (notificationsWidgetInterval) {
     clearInterval(notificationsWidgetInterval);
+    notificationsWidgetInterval = null;
   }
-  notificationsWidgetInterval = setInterval(() => {
-    refreshNotificationsWidget();
-  }, 10000); // 10 secondes
+  
+  // Obtenir l'intervalle depuis les settings ou la config
+  const getNotificationsInterval = async () => {
+    if (typeof getInterval === 'function') {
+      return await getInterval('notifications');
+    }
+    return CONFIG.NOTIFICATIONS_REFRESH_INTERVAL || 10000;
+  };
+  
+  getNotificationsInterval().then(interval => {
+    // S'assurer qu'on ne crée pas plusieurs intervalles
+    if (notificationsWidgetInterval) {
+      clearInterval(notificationsWidgetInterval);
+    }
+    
+    notificationsWidgetInterval = setInterval(() => {
+      // Éviter les appels multiples si une requête est déjà en cours
+      if (isNotificationsLoading) {
+        console.log("[Notifications] Requête en cours, skip du rafraîchissement");
+        return;
+      }
+      refreshNotificationsWidget();
+    }, interval);
+    
+    console.log(`[Notifications] ✅ Rafraîchissement automatique activé (toutes les ${interval / 1000} secondes)`);
+  });
 
   console.log("[Notifications Widget] Widget créé avec succès");
 }

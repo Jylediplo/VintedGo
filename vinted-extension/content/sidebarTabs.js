@@ -79,10 +79,23 @@ function createSidebarTabs() {
   refreshWardrobeCount(); // Mettre à jour le compteur du wardrobe
   
   // Observer les changements dans les listes pour mettre à jour les compteurs
-  const observer = new MutationObserver(() => {
-    updatePickupCount();
-    updateFiltersCount();
-    updateAlertsCount();
+  // Nettoyer l'observer existant s'il y en a un
+  if (window.pickupFiltersAlertsObserver) {
+    window.pickupFiltersAlertsObserver.disconnect();
+  }
+  
+  // Utiliser un debounce pour éviter les appels trop fréquents
+  let debounceTimer = null;
+  window.pickupFiltersAlertsObserver = new MutationObserver(() => {
+    // Debounce: attendre 1000ms avant de mettre à jour
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      updatePickupCount();
+      updateFiltersCount();
+      updateAlertsCount();
+    }, 1000);
   });
   
   // Observer les listes de filtres, alertes et points relais
@@ -92,13 +105,13 @@ function createSidebarTabs() {
     const pickupList = document.getElementById('pickup-points-list');
     
     if (filterList) {
-      observer.observe(filterList, { childList: true, subtree: true });
+      window.pickupFiltersAlertsObserver.observe(filterList, { childList: true, subtree: true });
     }
     if (alertList) {
-      observer.observe(alertList, { childList: true, subtree: true });
+      window.pickupFiltersAlertsObserver.observe(alertList, { childList: true, subtree: true });
     }
     if (pickupList) {
-      observer.observe(pickupList, { childList: true, subtree: true });
+      window.pickupFiltersAlertsObserver.observe(pickupList, { childList: true, subtree: true });
     }
   }, 2000);
   
@@ -143,9 +156,11 @@ function switchTab(tabName) {
     case 'messages':
       if (messagesContainer) messagesContainer.style.display = 'block';
       if (messagesListManager) messagesListManager.style.display = 'block';
-      // Démarrer le rafraîchissement automatique des messages toutes les 5 secondes
+      // Démarrer le rafraîchissement automatique des messages
       // (startMessagesAutoRefresh gère déjà l'arrêt d'un intervalle existant)
-      startMessagesAutoRefresh();
+      if (typeof startMessagesAutoRefresh === 'function') {
+        startMessagesAutoRefresh().catch(err => console.error('[Messages] Erreur:', err));
+      }
       break;
     case 'orders':
       // Arrêter le rafraîchissement automatique si on change d'onglet
@@ -175,38 +190,49 @@ function switchTab(tabName) {
   }
 }
 
-async function updateMessagesCountInTab() {
+let isUpdatingMessagesCount = false;
+
+async function updateMessagesCountInTab(conversations = null) {
   const messagesCountEl = document.getElementById('messages-count');
   if (!messagesCountEl) return;
 
+  // Éviter les appels multiples simultanés
+  if (isUpdatingMessagesCount && !conversations) {
+    return;
+  }
+  
+  isUpdatingMessagesCount = true;
+
   try {
-    // Charger les messages pour compter les non lus
-    const data = await fetchInbox(1, 50);
-    if (data && data.conversations) {
-      const unreadCount = data.conversations.filter(conv => conv.unread === true).length;
-      if (unreadCount > 0) {
-        messagesCountEl.textContent = unreadCount;
-        messagesCountEl.style.display = 'inline-block';
-      } else {
-        messagesCountEl.textContent = '';
-        messagesCountEl.style.display = 'none';
-      }
+    let unreadCount = 0;
+    
+    if (conversations) {
+      // Utiliser les conversations déjà chargées
+      unreadCount = conversations.filter(conv => conv.unread === true).length;
     } else {
-      // Fallback sur le compteur du manager si disponible
+      // NE JAMAIS faire de fetchInbox ici si conversations est null
+      // Utiliser uniquement le fallback du compteur existant
       const vintedMessagesCount = document.getElementById('vinted-messages-count');
       if (vintedMessagesCount) {
         const text = vintedMessagesCount.textContent.trim();
         const match = text.match(/\((\d+)\)/);
         if (match) {
-          messagesCountEl.textContent = match[1];
-          messagesCountEl.style.display = 'inline-block';
-        } else {
-          messagesCountEl.style.display = 'none';
+          unreadCount = parseInt(match[1]);
         }
       }
     }
+    
+    if (unreadCount > 0) {
+      messagesCountEl.textContent = unreadCount;
+      messagesCountEl.style.display = 'inline-block';
+    } else {
+      messagesCountEl.textContent = '';
+      messagesCountEl.style.display = 'none';
+    }
   } catch (error) {
     console.error("[Messages Count] Erreur lors de la mise à jour du compteur:", error);
+  } finally {
+    isUpdatingMessagesCount = false;
   }
 }
 
@@ -239,22 +265,72 @@ function updateOrdersCount() {
 }
 
 // Observer pour mettre à jour le compteur de messages quand il change
+let messagesCountObserver = null;
+
 function observeMessagesCount() {
-  const observer = new MutationObserver(() => {
-    updateMessagesCountInTab();
-  });
-  
-  const messagesCountEl = document.getElementById('vinted-messages-count');
-  if (messagesCountEl) {
-    observer.observe(messagesCountEl, {
-      childList: true,
-      characterData: true,
-      subtree: true
-    });
+  // Nettoyer l'observer existant s'il y en a un
+  if (messagesCountObserver) {
+    messagesCountObserver.disconnect();
+    messagesCountObserver = null;
   }
   
-  // Mettre à jour immédiatement
-  setTimeout(updateMessagesCountInTab, 1000);
+  const messagesCountEl = document.getElementById('vinted-messages-count');
+  if (!messagesCountEl) {
+    // Réessayer après un délai
+    setTimeout(observeMessagesCount, 1000);
+    return;
+  }
+  
+  // Utiliser un debounce pour éviter les appels trop fréquents
+  let debounceTimer = null;
+  let lastUpdateTime = 0;
+  const MIN_UPDATE_INTERVAL = 5000; // Minimum 5 secondes entre les mises à jour
+  
+  messagesCountObserver = new MutationObserver(() => {
+    const now = Date.now();
+    // Ne pas mettre à jour si on a déjà mis à jour récemment
+    if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+      return;
+    }
+    
+    // Debounce: attendre 2000ms avant de mettre à jour
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      // Ne JAMAIS appeler fetchInbox depuis le MutationObserver
+      // Utiliser uniquement le fallback du compteur existant
+      const messagesCountEl = document.getElementById('messages-count');
+      if (messagesCountEl) {
+        // Essayer de récupérer le compteur depuis le DOM sans faire de requête
+        const vintedMessagesCount = document.getElementById('vinted-messages-count');
+        if (vintedMessagesCount) {
+          const text = vintedMessagesCount.textContent.trim();
+          const match = text.match(/\((\d+)\)/);
+          if (match) {
+            const unreadCount = parseInt(match[1]);
+            if (unreadCount > 0) {
+              messagesCountEl.textContent = unreadCount;
+              messagesCountEl.style.display = 'inline-block';
+            } else {
+              messagesCountEl.textContent = '';
+              messagesCountEl.style.display = 'none';
+            }
+            lastUpdateTime = Date.now();
+          }
+        }
+      }
+    }, 2000);
+  });
+  
+  messagesCountObserver.observe(messagesCountEl, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
+  
+  // Ne pas mettre à jour immédiatement depuis ici
+  // La mise à jour sera faite par loadMessages quand les données seront disponibles
 }
 
 function updatePickupCount() {

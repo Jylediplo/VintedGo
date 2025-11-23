@@ -13,6 +13,7 @@ const filesOrder = [
   'utils.js',         // Utilitaires de base
   'darkMode.js',      // Dark mode
   'wallet.js',        // Wallet balance
+  'settings.js',      // Settings manager
   'sidebarTabs.js',  // Sidebar tabs system
   'orders.js',        // Orders management
   'wardrobe.js',      // Wardrobe items

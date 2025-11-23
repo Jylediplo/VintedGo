@@ -1,4 +1,6 @@
 // ==================== MONITOR ====================
+let isPollingItems = false;
+
 function startMonitor() {
   if (state.isPolling) return;
 
@@ -10,7 +12,38 @@ function startMonitor() {
   }
 
   pollItems();
-  state.pollInterval = setInterval(pollItems, CONFIG.POLL_INTERVAL);
+  
+  // S'assurer qu'on ne crée pas plusieurs intervalles
+  if (state.pollInterval) {
+    clearInterval(state.pollInterval);
+    state.pollInterval = null;
+  }
+  
+  // Obtenir l'intervalle depuis les settings ou la config
+  const getItemsInterval = async () => {
+    if (typeof getInterval === 'function') {
+      return await getInterval('items');
+    }
+    return CONFIG.POLL_INTERVAL || 3000;
+  };
+  
+  getItemsInterval().then(interval => {
+    // Double vérification
+    if (state.pollInterval) {
+      clearInterval(state.pollInterval);
+    }
+    
+    state.pollInterval = setInterval(() => {
+      // Éviter les appels multiples si une requête est déjà en cours
+      if (isPollingItems) {
+        console.log("[Vinted Monitor] Requête en cours, skip du polling");
+        return;
+      }
+      pollItems();
+    }, interval);
+    
+    console.log(`[Vinted Monitor] ✅ Polling activé (toutes les ${interval / 1000} secondes)`);
+  });
 }
 
 function stopMonitor() {
@@ -36,6 +69,13 @@ function toggleMonitor() {
 }
 
 async function pollItems() {
+  // Éviter les appels multiples simultanés
+  if (isPollingItems) {
+    console.log("[Vinted Monitor] Polling déjà en cours, skip");
+    return;
+  }
+  
+  isPollingItems = true;
   const isFirstFetch = state.items.length === 0;
 
   try {
@@ -56,6 +96,8 @@ async function pollItems() {
     }
   } catch (error) {
     console.error("[Vinted Monitor] Erreur:", error);
+  } finally {
+    isPollingItems = false;
   }
 }
 
